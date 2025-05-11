@@ -57,3 +57,35 @@
 
 - .mat 文件（包含原始数据、ΔF/F数据及计算参数）
 - .xlsx 文件（包含原始数据和ΔF/F数据）
+
+## 软件输出
+
+### mat文件输出
+
+1. **analysis_date**：分析日期，记录数据进行分析的具体时间。
+2. **raw_sig**：原始信号，存储未经处理或初步处理的原始数据信号
+3. **dff_sig**：计算的ΔF/F数据。
+4. **baseline_method**：基线方法，表明用于确定数据基线所采用的方法。
+5. **framerate**：数据采集时每秒的帧率。
+6. **moving_percentile**：移动百分位数。
+7. **moving_window_sec**：移动窗口时长 。
+8. **percentile_value**：百分位数值。
+9. **polynomial_order**：多项式阶数，当使用多项式方法（如确定基线时），该值表示多项式的阶数。
+10. **time_vector**：时间向量，存储与信号数据对应的时间信息
+
+![17469402961791746940296122.png](https://fastly.jsdelivr.net/gh/Achuan-2/PicBed@pic/assets/17469402961791746940296122.png)
+
+### excel
+
+保存excel，sheet1是dff_sig，sheet_2是raw_sig
+
+![17469403681171746940367329.png](https://fastly.jsdelivr.net/gh/Achuan-2/PicBed@pic/assets/17469403681171746940367329.png)
+
+### 绘图
+
+- 绘制单个神经元的ΔF/F
+
+  ![17469403051231746940304531.png](https://fastly.jsdelivr.net/gh/Achuan-2/PicBed@pic/assets/17469403051231746940304531.png)
+- 绘制多个神经元的ΔF/F
+
+  ![17469403123481746940311674.png](https://fastly.jsdelivr.net/gh/Achuan-2/PicBed@pic/assets/17469403123481746940311674.png)

@@ -24,7 +24,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         NeuronDropDown           matlab.ui.control.DropDown
         PreviousNeuronButton     matlab.ui.control.Button
         NextNeuronButton         matlab.ui.control.Button
-        DisplayAllNeuronsCheckBox matlab.ui.control.CheckBox
+        DisplayAllNeuronsButton  matlab.ui.control.Button % Changed from CheckBox to Button
         SaveResultsButton        matlab.ui.control.Button
         UIAxes                   matlab.ui.control.UIAxes
     end
@@ -43,6 +43,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         current_neuron_id = 1     % ID of the currently displayed neuron
         display_all = false       % Flag to display all neurons
         results                  % Structure to store analysis results
+        display_figure_handles   % Handle for the all neurons figure
     end
 
     methods (Access = private)
@@ -124,6 +125,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             end
         end
 
+
+
     end
 
     % Callbacks that handle component events
@@ -131,11 +134,13 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
 
         % Startup function
         function startupFcn(app)
+            assignin('base', 'app', app);
             app.RunAnalysisButton.Enable = 'off';
             app.NeuronDropDown.Enable = 'off';
             app.PreviousNeuronButton.Enable = 'off';
             app.NextNeuronButton.Enable = 'off';
             app.SaveResultsButton.Enable = 'off';
+            app.DisplayAllNeuronsButton.Enable = 'off'; % Initialize button as disabled
             app.NeuronDropDown.Items = {'N/A'};
             app.NeuronDropDown.Value = 'N/A';
             title(app.UIAxes, 'Load Data to Begin');
@@ -208,6 +213,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 app.PreviousNeuronButton.Enable = 'off';
                 app.NextNeuronButton.Enable = 'off';
                 app.SaveResultsButton.Enable = 'off';
+                app.DisplayAllNeuronsButton.Enable = 'off';
                 app.NeuronDropDown.Items = {'N/A'};
                 app.NeuronDropDown.Value = 'N/A';
                 cla(app.UIAxes);
@@ -315,7 +321,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.PreviousNeuronButton.Enable = 'on';
             app.NextNeuronButton.Enable = 'on';
             app.SaveResultsButton.Enable = 'on';
-            app.DisplayAllNeuronsCheckBox.Enable = 'on';
+            app.DisplayAllNeuronsButton.Enable = 'on';
             UpdatePlot(app);
         end
 
@@ -328,7 +334,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             end
             selectedNeuronStr = app.NeuronDropDown.Value;
             app.current_neuron_id = str2double(regexp(selectedNeuronStr, '\d+', 'match', 'once'));
-            app.display_all = app.DisplayAllNeuronsCheckBox.Value;
+            app.display_all = false; % Ensure single neuron view
             UpdatePlot(app);
         end
 
@@ -339,7 +345,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             end
             app.current_neuron_id = app.current_neuron_id - 1;
             app.NeuronDropDown.Value = sprintf('Neuron %d', app.current_neuron_id);
-            app.display_all = app.DisplayAllNeuronsCheckBox.Value;
+            app.display_all = false;
             UpdatePlot(app);
         end
 
@@ -350,14 +356,24 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             end
             app.current_neuron_id = app.current_neuron_id + 1;
             app.NeuronDropDown.Value = sprintf('Neuron %d', app.current_neuron_id);
-            app.display_all = app.DisplayAllNeuronsCheckBox.Value;
+            app.display_all = false;
             UpdatePlot(app);
         end
 
-        % Display all neurons checkbox value changed
-        function DisplayAllNeuronsCheckBoxValueChanged(app, event)
-            app.display_all = app.DisplayAllNeuronsCheckBox.Value;
-            UpdatePlot(app);
+        % Display all neurons button pushed
+        function DisplayAllNeuronsButtonPushed(app, event)
+            if isempty(app.dff_data)
+                uialert(app.UIFigure, 'No ΔF/F data to display.', 'Display Error');
+                return;
+            end
+            % Check if figure handle exists and is valid
+            if ~isfield(app, 'display_figure_handles') || isempty(app.display_figure_handles) || ~isvalid(app.display_figure_handles)
+                app.display_figure_handles = figure('Name', 'All Neurons ΔF/F');
+            end
+            % Plot all neurons using plot_signal
+
+            plot.plot_signal(app.dff_data, 'frame_rate',app.framerate,'color_map','turbo','signal_type','ΔF/F','fig',app.display_figure_handles,'scalebar_signal',1);
+            % selected_roi_str='' 为空代表显示一半，1-100代表显示前100个神经元
         end
 
         % Save results button pushed
@@ -371,7 +387,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, 'Save cancelled.', 'Save Operation');
                 return;
             end
-            fullPath = fullfile(filePath, fileName);
+            [~, name, ~] = fileparts(fileName);
+            matPath = fullfile(filePath, [name '.mat']);
+            xlsxPath = fullfile(filePath, [name '.xlsx']);
             raw_sig = app.fluo_data;
             dff_sig = app.dff_data;
             time_vector = app.time_vector;
@@ -383,10 +401,14 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             moving_percentile = app.moving_percentile;
             analysis_date = datestr(now);
             try
-                save(fullPath,'raw_sig', 'dff_sig', 'time_vector', 'framerate', ...
+                % Save .mat file
+                save(matPath, 'raw_sig', 'dff_sig', 'time_vector', 'framerate', ...
                     'baseline_method', 'percentile_value', 'polynomial_order', ...
                     'moving_window_sec', 'moving_percentile', 'analysis_date', '-v7.3');
-                uialert(app.UIFigure, sprintf('Results saved to:\n%s', fullPath), ...
+                % Save .xlsx file
+                writematrix(dff_sig, xlsxPath, 'Sheet', 'dff_sig');
+                writematrix(raw_sig, xlsxPath, 'Sheet', 'raw_sig');
+                uialert(app.UIFigure, sprintf('Results saved to:\n%s\n%s', matPath, xlsxPath), ...
                     'Save Success', 'Icon', 'success');
             catch ME
                 uialert(app.UIFigure, ['Error saving results: ' ME.message], 'Save Error');
@@ -502,10 +524,10 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.NextNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @NextNeuronButtonPushed, true);
             app.NextNeuronButton.Position = [105 210 85 22];
             app.NextNeuronButton.Text = 'Next';
-            app.DisplayAllNeuronsCheckBox = uicheckbox(app.NeuronDisplayPanel);
-            app.DisplayAllNeuronsCheckBox.ValueChangedFcn = createCallbackFcn(app, @DisplayAllNeuronsCheckBoxValueChanged, true);
-            app.DisplayAllNeuronsCheckBox.Text = 'Display All Neurons';
-            app.DisplayAllNeuronsCheckBox.Position = [10 180 150 22];
+            app.DisplayAllNeuronsButton = uibutton(app.NeuronDisplayPanel, 'push');
+            app.DisplayAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @DisplayAllNeuronsButtonPushed, true);
+            app.DisplayAllNeuronsButton.Text = 'Display All Neurons';
+            app.DisplayAllNeuronsButton.Position = [10 180 150 22];
             app.SaveResultsButton = uibutton(app.NeuronDisplayPanel, 'push');
             app.SaveResultsButton.ButtonPushedFcn = createCallbackFcn(app, @SaveResultsButtonPushed, true);
             app.SaveResultsButton.Position = [10 150 100 22];
@@ -536,6 +558,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
 
         function delete(app)
             delete(app.UIFigure)
+            if isfield(app, 'display_figure_handles') && isvalid(app.display_figure_handles)
+                delete(app.display_figure_handles);
+            end
         end
     end
 end

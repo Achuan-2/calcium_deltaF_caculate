@@ -50,7 +50,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         time_vector              % Time vector for plotting
         framerate = 30           % Default framerate (Hz), updated from UI
         baseline_method = 'Percentile' % Default baseline method
-        percentile_value = '10-20' % Default percentile (string for 10-20% average or single value)
+        percentile_value = '10:20' % Default percentile (string for 10-20% average or single value)
         baseline_time = 'all'    % Default baseline time range (all or start:end in seconds)
         polynomial_order = 3      % Default polynomial order
         moving_window_sec = 20    % Default moving window size in seconds
@@ -141,12 +141,12 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             
             switch app.baseline_method
                 case 'Percentile'
-                    % Parse percentile input (e.g., '10-20' or '20')
+                    % Parse percentile input (e.g., '10:20' or '20')
                     perc_str = app.percentile_value;
-                    if contains(perc_str, '-')
-                        range = str2double(split(perc_str, '-'));
-                        if length(range) ~= 2 || any(isnan(range)) || any(range < 0) || any(range > 100)
-                            error('Invalid percentile range. Use format "10-20" or single value like "20".');
+                    if contains(perc_str, ':')
+                        range = str2num(perc_str);
+                        if length(range) < 2 || any(isnan(range)) || any(range < 0) || any(range > 100)
+                            error('Invalid percentile range. Use format "10:20" or single value like "20".');
                         end
                         F0 = mean(prctile(baseline_trace, range));
                     else
@@ -278,7 +278,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 else
                     uialert(app.UIFigure, 'Unsupported file type.', 'Load Error'); return;
                 end
-                if ~ismatrix(app.fluo_data) || isempty(app.fluo_data) || ~isnumeric(app.fluo_data)
+                if (~ismatrix(app.fluo_data) || isempty(app.fluo_data) || ~isnumeric(app.fluo_data))
                     uialert(app.UIFigure, 'Selected data is not a valid numeric matrix or is empty.', 'Data Error');
                     app.fluo_data = []; return;
                 end
@@ -335,10 +335,10 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 end
                 if strcmp(app.baseline_method, 'Percentile')
                     perc_str = app.percentile_value;
-                    if contains(perc_str, '-')
-                        range = str2double(split(perc_str, '-'));
-                        if length(range) ~= 2 || any(isnan(range)) || any(range < 0) || any(range > 100)
-                            error('Invalid percentile range. Use format "10-20" or single value like "20".');
+                    if contains(perc_str, ':')
+                        range = str2num(perc_str);
+                        if length(range) < 2 || any(isnan(range)) || any(range < 0) || any(range > 100)
+                            error('Invalid percentile range. Use format "10:20" or single value like "20".');
                         end
                     else
                         perc = str2double(perc_str);
@@ -572,6 +572,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.PercentileEditField = uieditfield(app.BaselineParametersPanel, 'text');
             app.PercentileEditField.Position = [120 148 150 22]; % 调整y坐标
             app.PercentileEditField.Value = app.percentile_value;
+            app.PercentileEditField.Placeholder = '10:20 or 20';  % 更新占位符提示
             
             % 添加Baseline Time控件
             app.BaselineTimeLabel = uilabel(app.BaselineParametersPanel);

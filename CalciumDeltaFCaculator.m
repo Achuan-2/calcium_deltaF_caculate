@@ -1,5 +1,5 @@
 classdef CalciumDeltaFCaculator < matlab.apps.AppBase
-
+    
     % Properties that correspond to app components
     properties (Access = public)
         UIFigure                 matlab.ui.Figure
@@ -42,7 +42,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         DisplayAllNeuronsButton matlab.ui.control.Button
         UIAxes                   matlab.ui.control.UIAxes
     end
-
+    
     % Properties that store app data
     properties (Access = public)
         fluo_data                % Loaded fluorescence data (rows=neurons, cols=frames)
@@ -66,9 +66,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         roi_interval = 1         % Default ROI interval
         color_map = 'turbo'      % Default color map
     end
-
+    
     methods (Access = private)
-
+        
         % Update plot display
         function UpdatePlot(app)
             if isempty(app.dff_data)
@@ -109,7 +109,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             end
             hold(app.UIAxes, 'off');
         end
-
+        
         % Calculate baseline F0
         function F0 = CalculateBaseline(app, fluo_trace)
             % Filter data by time range if specified
@@ -138,7 +138,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             else
                 baseline_trace = fluo_trace;
             end
-
+            
             switch app.baseline_method
                 case 'Percentile'
                     % Parse percentile input (e.g., '10-20' or '20')
@@ -156,7 +156,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                         end
                         F0 = prctile(baseline_trace, perc);
                     end
-
+                    
                     
                 case 'Polynomial'
                     % Polynomial fitting
@@ -174,7 +174,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     error('Unknown baseline method.');
             end
         end
-
+        
         % Update all neurons plot
         function UpdateAllNeuronsPlot(app)
             if isempty(app.dff_data)
@@ -198,10 +198,10 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 'roi_interval', app.roi_interval);
         end
     end
-
+    
     % Callbacks that handle component events
     methods (Access = private)
-
+        
         % Startup function
         function startupFcn(app)
             assignin('base', 'app', app);
@@ -228,7 +228,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.ROIIntervalEditField.Value = app.roi_interval;
             app.ColorMapEditField.Value = app.color_map;
         end
-
+        
         % Load data button pushed
         function LoadDataButtonPushed(app, event)
             [fileName, filePath] = uigetfile({'*.mat';'*.xlsx;*.xls'}, 'Select Data File');
@@ -307,7 +307,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 app.RunAnalysisButton.Enable = 'off';
             end
         end
-
+        
         % Run analysis button pushed
         function RunAnalysisButtonPushed(app, event)
             if isempty(app.fluo_data)
@@ -320,7 +320,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.polynomial_order = app.PolynomialOrderEditField.Value;
             app.moving_window_sec = app.MovingWindowEditField.Value;
             app.moving_percentile = app.MovingPercentileEditField.Value;
-
+            
             % Validate parameters
             try
                 if app.framerate <= 0
@@ -362,7 +362,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, ['Parameter error: ' ME.message], 'Parameter Error');
                 return;
             end
-
+            
             % Compute ΔF/F
             progDlg = uiprogressdlg(app.UIFigure, 'Title', 'Computing ΔF/F', ...
                 'Message', 'Initializing...', 'Cancelable', 'on');
@@ -393,15 +393,23 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     return;
                 end
             end
-
-            % Update UI
+            
+            % Update UI - 保持当前选择的神经元
             neuronItems = arrayfun(@(x) sprintf('Neuron %d', x), 1:num_neurons, 'UniformOutput', false);
             if isempty(neuronItems)
                 neuronItems = {'N/A'};
+                app.current_neuron_id = 0;
+            else
+                % 如果是第一次运行分析，或者当前选择的ID超出范围，设置为第一个神经元
+                if strcmp(app.NeuronDropDown.Items{1}, 'N/A') || app.current_neuron_id > num_neurons
+                    app.current_neuron_id = 1;
+                end
+                % 否则保持当前选择的神经元
             end
+            
+            % 更新下拉菜单，但保持当前选择
             app.NeuronDropDown.Items = neuronItems;
-            app.NeuronDropDown.Value = neuronItems{1};
-            app.current_neuron_id = 1;
+            app.NeuronDropDown.Value = sprintf('Neuron %d', app.current_neuron_id);
             app.NeuronDropDown.Enable = 'on';
             app.PreviousNeuronButton.Enable = 'on';
             app.NextNeuronButton.Enable = 'on';
@@ -409,7 +417,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.DisplayAllNeuronsButton.Enable = 'on';
             UpdatePlot(app);
         end
-
+        
         % Neuron dropdown value changed
         function NeuronDropDownValueChanged(app, event)
             if strcmp(app.NeuronDropDown.Value, 'N/A') || isempty(app.dff_data)
@@ -422,7 +430,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.display_all = false; % Ensure single neuron view
             UpdatePlot(app);
         end
-
+        
         % Previous neuron button pushed
         function PreviousNeuronButtonPushed(app, event)
             if isempty(app.dff_data) || app.current_neuron_id <= 1
@@ -433,7 +441,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.display_all = false;
             UpdatePlot(app);
         end
-
+        
         % Next neuron button pushed
         function NextNeuronButtonPushed(app, event)
             if isempty(app.dff_data) || app.current_neuron_id >= size(app.dff_data, 1)
@@ -444,9 +452,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.display_all = false;
             UpdatePlot(app);
         end
-
-
-
+        
+        
+        
         % Update all neurons plot button pushed
         function DisplayAllNeuronsButtonPushed(app, event)
             app.scalebar_signal = app.ScalebarSignalEditField.Value;
@@ -457,7 +465,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.color_map = app.ColorMapEditField.Value;
             UpdateAllNeuronsPlot(app);
         end
-
+        
         % Save results button pushed
         function SaveResultsButtonPushed(app, event)
             if isempty(app.dff_data) || isempty(app.results)
@@ -505,7 +513,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, ['Error saving results: ' ME.message], 'Save Error');
             end
         end
-
+        
         % Baseline method dropdown value changed
         function BaselineMethodDropDownValueChanged(app, event)
             app.baseline_method = app.BaselineMethodDropDown.Value;
@@ -517,16 +525,16 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.MovingPercentileEditField.Enable = strcmp(app.baseline_method, 'Moving Percentile');
         end
     end
-
+    
     % Component initialization
     methods (Access = private)
-
+        
         % Create UI components
         function createComponents(app)
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1200 700];
             app.UIFigure.Name = 'Calcium ΔF/F Calculator';
-        
+            
             % File Operations Panel
             app.FileOperationsPanel = uipanel(app.UIFigure);
             app.FileOperationsPanel.Title = 'File Operations';
@@ -543,7 +551,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.LoadDataButton.ButtonPushedFcn = createCallbackFcn(app, @LoadDataButtonPushed, true);
             app.LoadDataButton.Position = [10 10 100 22];
             app.LoadDataButton.Text = 'Load Data';
-        
+            
             % Baseline Parameters Panel
             app.BaselineParametersPanel = uipanel(app.UIFigure);
             app.BaselineParametersPanel.Title = 'Baseline Parameters';
@@ -606,7 +614,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.RunAnalysisButton.ButtonPushedFcn = createCallbackFcn(app, @RunAnalysisButtonPushed, true);
             app.RunAnalysisButton.Position = [10 10 100 22];
             app.RunAnalysisButton.Text = 'Run Analysis';
-        
+            
             % Neuron Display Panel
             app.NeuronDisplayPanel = uipanel(app.UIFigure);
             app.NeuronDisplayPanel.Title = 'Neuron Display';
@@ -630,14 +638,14 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.SaveResultsButton.ButtonPushedFcn = createCallbackFcn(app, @SaveResultsButtonPushed, true);
             app.SaveResultsButton.Position = [10 15 100 22];
             app.SaveResultsButton.Text = 'Save Results';
-        
+            
             % All Neurons Display Panel
             app.AllNeuronsDisplayPanel = uipanel(app.UIFigure);
             app.AllNeuronsDisplayPanel.Title = 'All Neurons Display';
             app.AllNeuronsDisplayPanel.Position = [20 30 300 200]; % 调整位置以适应上方面板高度增加
             app.DisplayAllNeuronsButton = uibutton(app.AllNeuronsDisplayPanel, 'push');
             app.DisplayAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @DisplayAllNeuronsButtonPushed, true);
-            app.DisplayAllNeuronsButton.Position =  [10 155 140 22]; 
+            app.DisplayAllNeuronsButton.Position =  [10 155 140 22];
             app.DisplayAllNeuronsButton.Text = 'Display All Neurons';
             app.ScalebarSignalLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ScalebarSignalLabel.HorizontalAlignment = 'left';
@@ -680,7 +688,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.ColorMapEditField.Position = [100 5 170 22]; % 调整y坐标
             app.ColorMapEditField.Value = app.color_map;
             app.ColorMapEditField.Placeholder = 'colormap(e.g.,turbo) or fixed(e.g., #ff0000)';
-        
+            
             % UIAxes
             app.UIAxes = uiaxes(app.UIFigure);
             title(app.UIAxes, 'ΔF/F Signal')
@@ -688,11 +696,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             ylabel(app.UIAxes, 'ΔF/F')
             app.UIAxes.Position = [350 50 800 600];
             grid(app.UIAxes, 'on');
-        
+            
             app.UIFigure.Visible = 'on';
         end
     end
-
+    
     % App creation and deletion
     methods (Access = public)
         function app = CalciumDeltaFCaculator
@@ -703,7 +711,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 clear app
             end
         end
-
+        
         function delete(app)
             delete(app.UIFigure)
             if isfield(app, 'display_figure_handles') && isvalid(app.display_figure_handles)

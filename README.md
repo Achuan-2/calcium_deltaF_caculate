@@ -89,3 +89,9 @@
 - 绘制多个神经元的ΔF/F
 
   ![17469403123481746940311674.png](https://fastly.jsdelivr.net/gh/Achuan-2/PicBed@pic/assets/17469403123481746940311674.png)
+
+
+
+## 为什么要计算ΔF/F，以及如何计算ΔF/F
+
+参考我之前转载的文章：[【转载】如何从钙成像数据中计算ΔF／F（作者：Peter Rupprecht）](https://mp.weixin.qq.com/s/NecDXb8uEX_I1ozk6ekV1Q)

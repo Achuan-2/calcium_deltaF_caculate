@@ -41,6 +41,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         ColorMapEditField        matlab.ui.control.EditField
         DisplayAllNeuronsButton matlab.ui.control.Button
         UIAxes                   matlab.ui.control.UIAxes
+        SignalTypeDropDown       matlab.ui.control.DropDown % New dropdown for signal type
     end
     
     % Properties that store app data
@@ -65,44 +66,65 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         selected_roi_str = ''    % Default selected ROI string
         roi_interval = 1         % Default ROI interval
         color_map = 'turbo'      % Default color map
+        signal_type = 'Raw Signal' % Current signal type to display
     end
     
     methods (Access = private)
         
         % Update plot display
         function UpdatePlot(app)
-            if isempty(app.dff_data)
-                cla(app.UIAxes);
-                title(app.UIAxes, 'No ΔF/F data to plot.');
-                xlabel(app.UIAxes, 'Time (s)');
-                ylabel(app.UIAxes, 'ΔF/F');
-                return;
-            end
             cla(app.UIAxes);
             hold(app.UIAxes, 'on');
+            
+            if isempty(app.fluo_data)
+                title(app.UIAxes, 'No data to plot.');
+                xlabel(app.UIAxes, 'Time (s)');
+                ylabel(app.UIAxes, 'Signal');
+                return;
+            end
+            
+            ylabel_str = 'Raw Signal';
+            if strcmp(app.signal_type, 'ΔF/F')
+                ylabel_str = 'ΔF/F';
+                if isempty(app.dff_data)
+                    title(app.UIAxes, 'No ΔF/F data to plot.');
+                    xlabel(app.UIAxes, 'Time (s)');
+                    ylabel(app.UIAxes, 'ΔF/F');
+                    return;
+                end
+            end
+            
             if app.display_all
                 % Plot all neurons
-                num_neurons = size(app.dff_data, 1);
+                num_neurons = size(app.fluo_data, 1);
                 for n = 1:num_neurons
-                    plot(app.UIAxes, app.time_vector, app.dff_data(n, :), ...
-                        'DisplayName', sprintf('Neuron %d', n));
+                    if strcmp(app.signal_type, 'Raw Signal')
+                        plot(app.UIAxes, app.time_vector, app.fluo_data(n, :), ...
+                            'DisplayName', sprintf('Neuron %d', n));
+                    else
+                        plot(app.UIAxes, app.time_vector, app.dff_data(n, :), ...
+                            'DisplayName', sprintf('Neuron %d', n));
+                    end
                 end
-                title(app.UIAxes, sprintf('ΔF/F for All %d Neurons', num_neurons));
+                title(app.UIAxes, sprintf('%s for All %d Neurons', app.signal_type, num_neurons));
             else
                 % Plot single neuron
                 neuron_id = app.current_neuron_id;
-                if neuron_id > size(app.dff_data, 1)
-                    cla(app.UIAxes);
+                if neuron_id > size(app.fluo_data, 1)
                     title(app.UIAxes, 'Invalid neuron selected.');
                     return;
                 end
-                trace = app.dff_data(neuron_id, :);
+                if strcmp(app.signal_type, 'Raw Signal')
+                    trace = app.fluo_data(neuron_id, :);
+                else
+                    trace = app.dff_data(neuron_id, :);
+                end
                 plot(app.UIAxes, app.time_vector, trace, 'b-', 'LineWidth', 1.5, ...
                     'DisplayName', sprintf('Neuron %d', neuron_id));
-                title(app.UIAxes, sprintf('ΔF/F for Neuron %d', neuron_id));
+                title(app.UIAxes, sprintf('%s for Neuron %d', app.signal_type, neuron_id));
             end
             xlabel(app.UIAxes, 'Time (s)');
-            ylabel(app.UIAxes, 'ΔF/F');
+            ylabel(app.UIAxes, ylabel_str);
             grid(app.UIAxes, 'on');
             if app.display_all
                 legend(app.UIAxes, 'show');
@@ -115,21 +137,16 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             % Filter data by time range if specified
             if ~strcmpi(app.baseline_time, 'all')
                 try
-                    % Parse time range
-                    time_range = str2num(app.baseline_time); % 使用str2num以支持'1:30'格式
+                    time_range = str2num(app.baseline_time);
                     if isempty(time_range)
                         error('Invalid time range format. Use "all" or range like "1:30".');
                     end
-                    
-                    % Convert time to frame indices
                     start_frame = max(1, round(time_range(1) * app.framerate) + 1);
                     if length(time_range) > 1
                         end_frame = min(length(fluo_trace), round(time_range(end) * app.framerate));
                     else
                         end_frame = min(length(fluo_trace), round(time_range * app.framerate));
                     end
-                    
-                    % Use only the selected time range for baseline calculation
                     baseline_trace = fluo_trace(start_frame:end_frame);
                 catch
                     warning('Invalid time range specified. Using all data.');
@@ -141,7 +158,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             
             switch app.baseline_method
                 case 'Percentile'
-                    % Parse percentile input (e.g., '10:20' or '20')
                     perc_str = app.percentile_value;
                     if contains(perc_str, ':')
                         range = str2num(perc_str);
@@ -156,15 +172,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                         end
                         F0 = prctile(baseline_trace, perc);
                     end
-                    
-                    
                 case 'Polynomial'
-                    % Polynomial fitting
                     t = (1:length(fluo_trace))';
                     p = polyfit(t, fluo_trace', app.polynomial_order);
                     F0 = polyval(p, t)';
                 case 'Moving Percentile'
-                    % Moving percentile
                     w_size = round(app.moving_window_sec * app.framerate);
                     q_value = app.moving_percentile;
                     x_w = floor(w_size/2);
@@ -181,11 +193,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, 'No ΔF/F data to display.', 'Display Error');
                 return;
             end
-            % Check if figure handle exists and is valid
             if ~isfield(app, 'display_figure_handles') || isempty(app.display_figure_handles) || ~isvalid(app.display_figure_handles)
                 app.display_figure_handles = figure('Name', 'All Neurons ΔF/F');
             end
-            % Plot all neurons using plot_signal with parameters
             plot.plot_signal(app.dff_data, ...
                 'frame_rate', app.framerate, ...
                 'color_map', app.color_map, ...
@@ -213,6 +223,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.DisplayAllNeuronsButton.Enable = 'off';
             app.NeuronDropDown.Items = {'N/A'};
             app.NeuronDropDown.Value = 'N/A';
+            app.SignalTypeDropDown.Items = {'Raw Signal'};
+            app.SignalTypeDropDown.Enable = 'off';
             title(app.UIAxes, 'Load Data to Begin');
             app.FramerateEditField.Value = app.framerate;
             app.PercentileEditField.Value = app.percentile_value;
@@ -231,7 +243,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         
         % Load data button pushed
         function LoadDataButtonPushed(app, event)
+            f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','');
             [fileName, filePath] = uigetfile({'*.mat';'*.xlsx;*.xls'}, 'Select Data File');
+            delete(f_dummy); %delete the dummy figure
             if isequal(fileName, 0) || isequal(filePath, 0)
                 uialert(app.UIFigure, 'No file selected.', 'File Load');
                 return;
@@ -249,9 +263,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     if length(varNames) == 1
                         app.fluo_data = dataLoaded.(varNames{1});
                     else
+                        f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','');
                         [indx, tf] = listdlg('PromptString', {'Select fluorescence variable: (rows=neurons, cols=frames)'}, ...
                             'SelectionMode', 'single', 'ListString', varNames, ...
-                            'Name', 'Select Variable', 'OKString', 'Select');
+                                'Name', 'Select Variable', 'OKString', 'Select');
+                        delete(f_dummy); %delete the dummy figure
                         if tf
                             app.fluo_data = dataLoaded.(varNames{indx});
                         else
@@ -266,9 +282,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     if length(sheetNames) == 1
                         app.fluo_data = readmatrix(fullPath, 'Sheet', sheetNames{1});
                     else
+                        f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','');
                         [indx, tf] = listdlg('PromptString', {'Select sheet: (rows=neurons, cols=frames)'}, ...
                             'SelectionMode', 'single', 'ListString', sheetNames, ...
                             'Name', 'Select Sheet', 'OKString', 'Select');
+                        delete(f_dummy); %delete the dummy figure
                         if tf
                             app.fluo_data = readmatrix(fullPath, 'Sheet', sheetNames{indx});
                         else
@@ -286,18 +304,18 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 app.time_vector = (0:num_frames-1) / app.framerate;
                 app.dff_data = [];
                 app.RunAnalysisButton.Enable = 'on';
-                app.NeuronDropDown.Enable = 'off';
-                app.PreviousNeuronButton.Enable = 'off';
-                app.NextNeuronButton.Enable = 'off';
-                app.SaveResultsButton.Enable = 'off';
-                app.DisplayAllNeuronsButton.Enable = 'off';
-                app.NeuronDropDown.Items = {'N/A'};
-                app.NeuronDropDown.Value = 'N/A';
-                cla(app.UIAxes);
-                title(app.UIAxes, 'Data Loaded. Press "Run Analysis".');
-                xlabel(app.UIAxes, 'Time (s)');
-                ylabel(app.UIAxes, 'ΔF/F');
-                grid(app.UIAxes, 'on');
+                app.NeuronDropDown.Enable = 'on';
+                app.PreviousNeuronButton.Enable = 'on';
+                app.NextNeuronButton.Enable = 'on';
+                app.DisplayAllNeuronsButton.Enable = 'on';
+                app.NeuronDropDown.Items = arrayfun(@(x) sprintf('Neuron %d', x), 1:num_neurons, 'UniformOutput', false);
+                app.NeuronDropDown.Value = 'Neuron 1';
+                app.current_neuron_id = 1;
+                app.signal_type = 'Raw Signal';
+                app.SignalTypeDropDown.Items = {'Raw Signal'};
+                app.SignalTypeDropDown.Value = 'Raw Signal';
+                app.SignalTypeDropDown.Enable = 'on';
+                UpdatePlot(app);
                 uialert(app.UIFigure, sprintf('Data loaded: %d neurons, %d frames.', num_neurons, num_frames), ...
                     'Load Success', 'Icon', 'success');
             catch ME
@@ -305,6 +323,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 app.fluo_data = [];
                 app.dff_data = [];
                 app.RunAnalysisButton.Enable = 'off';
+                app.SignalTypeDropDown.Enable = 'off';
             end
         end
         
@@ -321,12 +340,10 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.moving_window_sec = app.MovingWindowEditField.Value;
             app.moving_percentile = app.MovingPercentileEditField.Value;
             
-            % Validate parameters
             try
                 if app.framerate <= 0
                     error('Framerate must be positive.');
                 end
-                % Validate baseline time
                 if ~strcmpi(app.baseline_time, 'all')
                     time_range = str2num(app.baseline_time);
                     if isempty(time_range) || any(time_range < 0)
@@ -363,7 +380,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 return;
             end
             
-            % Compute ΔF/F
             progDlg = uiprogressdlg(app.UIFigure, 'Title', 'Computing ΔF/F', ...
                 'Message', 'Initializing...', 'Cancelable', 'on');
             [num_neurons, num_frames] = size(app.fluo_data);
@@ -394,20 +410,16 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 end
             end
             
-            % Update UI - 保持当前选择的神经元
             neuronItems = arrayfun(@(x) sprintf('Neuron %d', x), 1:num_neurons, 'UniformOutput', false);
             if isempty(neuronItems)
                 neuronItems = {'N/A'};
                 app.current_neuron_id = 0;
             else
-                % 如果是第一次运行分析，或者当前选择的ID超出范围，设置为第一个神经元
                 if strcmp(app.NeuronDropDown.Items{1}, 'N/A') || app.current_neuron_id > num_neurons
                     app.current_neuron_id = 1;
                 end
-                % 否则保持当前选择的神经元
             end
             
-            % 更新下拉菜单，但保持当前选择
             app.NeuronDropDown.Items = neuronItems;
             app.NeuronDropDown.Value = sprintf('Neuron %d', app.current_neuron_id);
             app.NeuronDropDown.Enable = 'on';
@@ -415,25 +427,35 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.NextNeuronButton.Enable = 'on';
             app.SaveResultsButton.Enable = 'on';
             app.DisplayAllNeuronsButton.Enable = 'on';
+            app.SignalTypeDropDown.Items = {'Raw Signal', 'ΔF/F'};
+            app.signal_type = 'ΔF/F';
+            app.SignalTypeDropDown.Value = 'ΔF/F';
+            UpdatePlot(app);
+        end
+        
+        % Signal type dropdown value changed
+        function SignalTypeDropDownValueChanged(app, event)
+            app.signal_type = app.SignalTypeDropDown.Value;
+            app.display_all = false;
             UpdatePlot(app);
         end
         
         % Neuron dropdown value changed
         function NeuronDropDownValueChanged(app, event)
-            if strcmp(app.NeuronDropDown.Value, 'N/A') || isempty(app.dff_data)
+            if strcmp(app.NeuronDropDown.Value, 'N/A')
                 app.current_neuron_id = 0;
                 UpdatePlot(app);
                 return;
             end
             selectedNeuronStr = app.NeuronDropDown.Value;
             app.current_neuron_id = str2double(regexp(selectedNeuronStr, '\d+', 'match', 'once'));
-            app.display_all = false; % Ensure single neuron view
+            app.display_all = false;
             UpdatePlot(app);
         end
         
         % Previous neuron button pushed
         function PreviousNeuronButtonPushed(app, event)
-            if isempty(app.dff_data) || app.current_neuron_id <= 1
+            if isempty(app.fluo_data) || app.current_neuron_id <= 1
                 return;
             end
             app.current_neuron_id = app.current_neuron_id - 1;
@@ -444,7 +466,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         
         % Next neuron button pushed
         function NextNeuronButtonPushed(app, event)
-            if isempty(app.dff_data) || app.current_neuron_id >= size(app.dff_data, 1)
+            if isempty(app.fluo_data) || app.current_neuron_id >= size(app.fluo_data, 1)
                 return;
             end
             app.current_neuron_id = app.current_neuron_id + 1;
@@ -452,8 +474,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.display_all = false;
             UpdatePlot(app);
         end
-        
-        
         
         % Update all neurons plot button pushed
         function DisplayAllNeuronsButtonPushed(app, event)
@@ -463,7 +483,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.selected_roi_str = app.SelectedROIEditField.Value;
             app.roi_interval = app.ROIIntervalEditField.Value;
             app.color_map = app.ColorMapEditField.Value;
-            UpdateAllNeuronsPlot(app);
+            app.display_all = true;
+            UpdatePlot(app); % Update UIAxes with all neurons
+            UpdateAllNeuronsPlot(app); % Update separate figure
         end
         
         % Save results button pushed
@@ -498,13 +520,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             color_map = app.color_map;
             analysis_date = datestr(now);
             try
-                % Save .mat file
                 save(matPath, 'raw_sig', 'dff_sig', 'time_vector', 'framerate', ...
                     'baseline_method', 'percentile_value', 'baseline_time', 'polynomial_order', ...
                     'moving_window_sec', 'moving_percentile', 'scalebar_signal', ...
                     'plot_scale_bar_time', 'scalebar_time', 'selected_roi_str', ...
                     'roi_interval', 'color_map', 'analysis_date', '-v7.3');
-                % Save .xlsx file
                 writematrix(dff_sig, xlsxPath, 'Sheet', 'dff_sig');
                 writematrix(raw_sig, xlsxPath, 'Sheet', 'raw_sig');
                 uialert(app.UIFigure, sprintf('Results saved to:\n%s\n%s', matPath, xlsxPath), ...
@@ -517,7 +537,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         % Baseline method dropdown value changed
         function BaselineMethodDropDownValueChanged(app, event)
             app.baseline_method = app.BaselineMethodDropDown.Value;
-            % Enable/disable relevant parameter fields
             app.PercentileEditField.Enable = strcmp(app.baseline_method, 'Percentile');
             app.BaselineTimeEditField.Enable = strcmp(app.baseline_method, 'Percentile');
             app.PolynomialOrderEditField.Enable = strcmp(app.baseline_method, 'Polynomial');
@@ -555,60 +574,57 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             % Baseline Parameters Panel
             app.BaselineParametersPanel = uipanel(app.UIFigure);
             app.BaselineParametersPanel.Title = 'Baseline Parameters';
-            app.BaselineParametersPanel.Position = [20 355 300 220]; % 增加高度以容纳新控件
+            app.BaselineParametersPanel.Position = [20 355 300 220];
             app.BaselineMethodDropDownLabel = uilabel(app.BaselineParametersPanel);
             app.BaselineMethodDropDownLabel.HorizontalAlignment = 'right';
-            app.BaselineMethodDropDownLabel.Position = [10 175 100 22]; % 调整y坐标
+            app.BaselineMethodDropDownLabel.Position = [10 175 100 22];
             app.BaselineMethodDropDownLabel.Text = 'Baseline Method:';
             app.BaselineMethodDropDown = uidropdown(app.BaselineParametersPanel);
             app.BaselineMethodDropDown.Items = {'Percentile', 'Polynomial', 'Moving Percentile'};
             app.BaselineMethodDropDown.ValueChangedFcn = createCallbackFcn(app, @BaselineMethodDropDownValueChanged, true);
-            app.BaselineMethodDropDown.Position = [120 175 150 22]; % 调整y坐标
+            app.BaselineMethodDropDown.Position = [120 175 150 22];
             app.BaselineMethodDropDown.Value = app.baseline_method;
             app.PercentileEditFieldLabel = uilabel(app.BaselineParametersPanel);
             app.PercentileEditFieldLabel.HorizontalAlignment = 'right';
-            app.PercentileEditFieldLabel.Position = [10 148 100 22]; % 调整y坐标
+            app.PercentileEditFieldLabel.Position = [10 148 100 22];
             app.PercentileEditFieldLabel.Text = 'Percentile';
             app.PercentileEditField = uieditfield(app.BaselineParametersPanel, 'text');
-            app.PercentileEditField.Position = [120 148 150 22]; % 调整y坐标
+            app.PercentileEditField.Position = [120 148 150 22];
             app.PercentileEditField.Value = app.percentile_value;
-            app.PercentileEditField.Placeholder = '10:20 or 20';  % 更新占位符提示
-            
-            % 添加Baseline Time控件
+            app.PercentileEditField.Placeholder = '10:20 or 20';
             app.BaselineTimeLabel = uilabel(app.BaselineParametersPanel);
             app.BaselineTimeLabel.HorizontalAlignment = 'right';
-            app.BaselineTimeLabel.Position = [10 120 100 22]; % 新控件位置
+            app.BaselineTimeLabel.Position = [10 120 100 22];
             app.BaselineTimeLabel.Text = 'Baseline Time(s):';
             app.BaselineTimeEditField = uieditfield(app.BaselineParametersPanel, 'text');
-            app.BaselineTimeEditField.Position = [120 120 150 22]; % 新控件位置
+            app.BaselineTimeEditField.Position = [120 120 150 22];
             app.BaselineTimeEditField.Value = app.baseline_time;
             app.BaselineTimeEditField.Placeholder = 'all or 1:30';
-            
             app.PolynomialOrderLabel = uilabel(app.BaselineParametersPanel);
             app.PolynomialOrderLabel.HorizontalAlignment = 'right';
-            app.PolynomialOrderLabel.Position = [10 92 100 22]; % 调整y坐标
+            app.PolynomialOrderLabel.Position = [10 92 100 22];
             app.PolynomialOrderLabel.Text = 'Polynomial Order:';
             app.PolynomialOrderEditField = uieditfield(app.BaselineParametersPanel, 'numeric');
             app.PolynomialOrderEditField.ValueDisplayFormat = '%d';
-            app.PolynomialOrderEditField.Position = [120 92 150 22]; % 调整y坐标
+            app.PolynomialOrderEditField.Position = [120 92 150 22];
             app.PolynomialOrderEditField.Value = app.polynomial_order;
             app.PolynomialOrderEditField.Enable = 'off';
             app.MovingWindowLabel = uilabel(app.BaselineParametersPanel);
             app.MovingWindowLabel.HorizontalAlignment = 'right';
-            app.MovingWindowLabel.Position = [10 64 100 22]; % 调整y坐标
+            app.MovingWindowLabel.Position = [10 64 100 22];
             app.MovingWindowLabel.Text = 'Window Size (s):';
             app.MovingWindowEditField = uieditfield(app.BaselineParametersPanel, 'numeric');
             app.MovingWindowEditField.ValueDisplayFormat = '%.2f';
-            app.MovingWindowEditField.Position = [120 64 150 22]; % 调整y坐标
+            app.MovingWindowEditField.Position = [120 64 150 22];
             app.MovingWindowEditField.Value = app.moving_window_sec;
             app.MovingWindowEditField.Enable = 'off';
             app.MovingPercentileLabel = uilabel(app.BaselineParametersPanel);
             app.MovingPercentileLabel.HorizontalAlignment = 'right';
-            app.MovingPercentileLabel.Position = [10 36 100 22]; % 调整y坐标
+            app.MovingPercentileLabel.Position = [10 36 100 22];
             app.MovingPercentileLabel.Text = 'Moving Percentile:';
             app.MovingPercentileEditField = uieditfield(app.BaselineParametersPanel, 'numeric');
             app.MovingPercentileEditField.ValueDisplayFormat = '%.2f';
-            app.MovingPercentileEditField.Position = [120 36 150 22]; % 调整y坐标
+            app.MovingPercentileEditField.Position = [120 36 150 22];
             app.MovingPercentileEditField.Value = app.moving_percentile;
             app.MovingPercentileEditField.Enable = 'off';
             app.RunAnalysisButton = uibutton(app.BaselineParametersPanel, 'push');
@@ -619,7 +635,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             % Neuron Display Panel
             app.NeuronDisplayPanel = uipanel(app.UIFigure);
             app.NeuronDisplayPanel.Title = 'Neuron Display';
-            app.NeuronDisplayPanel.Position = [20 220 300 120]; % 调整位置以适应上方面板高度增加
+            app.NeuronDisplayPanel.Position = [20 220 300 120];
             app.SelectNeuronLabel = uilabel(app.NeuronDisplayPanel);
             app.SelectNeuronLabel.HorizontalAlignment = 'right';
             app.SelectNeuronLabel.Position = [10 70 85 22];
@@ -643,60 +659,68 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             % All Neurons Display Panel
             app.AllNeuronsDisplayPanel = uipanel(app.UIFigure);
             app.AllNeuronsDisplayPanel.Title = 'All Neurons Display';
-            app.AllNeuronsDisplayPanel.Position = [20 30 300 200]; % 调整位置以适应上方面板高度增加
+            app.AllNeuronsDisplayPanel.Position = [20 30 300 200];
             app.DisplayAllNeuronsButton = uibutton(app.AllNeuronsDisplayPanel, 'push');
             app.DisplayAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @DisplayAllNeuronsButtonPushed, true);
-            app.DisplayAllNeuronsButton.Position =  [10 155 140 22];
+            app.DisplayAllNeuronsButton.Position = [10 155 140 22];
             app.DisplayAllNeuronsButton.Text = 'Display All Neurons';
             app.ScalebarSignalLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ScalebarSignalLabel.HorizontalAlignment = 'left';
-            app.ScalebarSignalLabel.Position = [10 125 130 22]; % 调整y坐标
+            app.ScalebarSignalLabel.Position = [10 125 130 22];
             app.ScalebarSignalLabel.Text = 'Scalebar Signal:';
             app.ScalebarSignalEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
-            app.ScalebarSignalEditField.Position = [170 125 100 22]; % 调整y坐标
+            app.ScalebarSignalEditField.Position = [170 125 100 22];
             app.ScalebarSignalEditField.Value = app.scalebar_signal;
             app.PlotScaleBarTimeCheckBox = uicheckbox(app.AllNeuronsDisplayPanel);
             app.PlotScaleBarTimeCheckBox.Text = 'Plot Time Scalebar';
-            app.PlotScaleBarTimeCheckBox.Position = [10 95 120 22]; % 调整y坐标
+            app.PlotScaleBarTimeCheckBox.Position = [10 95 120 22];
             app.PlotScaleBarTimeCheckBox.Value = app.plot_scale_bar_time;
             app.ScalebarTimeLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ScalebarTimeLabel.HorizontalAlignment = 'right';
-            app.ScalebarTimeLabel.Position = [130 95 80 22]; % 调整y坐标
+            app.ScalebarTimeLabel.Position = [130 95 80 22];
             app.ScalebarTimeLabel.Text = 'Scalebar';
             app.ScalebarTimeEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
-            app.ScalebarTimeEditField.Position = [220 95 50 22]; % 调整y坐标
+            app.ScalebarTimeEditField.Position = [220 95 50 22];
             app.ScalebarTimeEditField.Value = app.scalebar_time;
             app.SelectedROILabel = uilabel(app.AllNeuronsDisplayPanel);
             app.SelectedROILabel.HorizontalAlignment = 'right';
-            app.SelectedROILabel.Position = [10 65 80 22]; % 调整y坐标
+            app.SelectedROILabel.Position = [10 65 80 22];
             app.SelectedROILabel.Text = 'Selected ROI:';
             app.SelectedROIEditField = uieditfield(app.AllNeuronsDisplayPanel, 'text');
-            app.SelectedROIEditField.Position = [100 65 170 22]; % 调整y坐标
+            app.SelectedROIEditField.Position = [100 65 170 22];
             app.SelectedROIEditField.Value = app.selected_roi_str;
             app.SelectedROIEditField.Placeholder = '1:5,7:9';
             app.ROIIntervalLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ROIIntervalLabel.HorizontalAlignment = 'right';
-            app.ROIIntervalLabel.Position = [10 35 80 22]; % 调整y坐标
+            app.ROIIntervalLabel.Position = [10 35 80 22];
             app.ROIIntervalLabel.Text = 'ROI Interval:';
             app.ROIIntervalEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
-            app.ROIIntervalEditField.Position = [100 35 170 22]; % 调整y坐标
+            app.ROIIntervalEditField.Position = [100 35 170 22];
             app.ROIIntervalEditField.Value = app.roi_interval;
             app.ColorMapLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ColorMapLabel.HorizontalAlignment = 'right';
-            app.ColorMapLabel.Position = [10 5 80 22]; % 调整y坐标
+            app.ColorMapLabel.Position = [10 5 80 22];
             app.ColorMapLabel.Text = 'Color Map:';
             app.ColorMapEditField = uieditfield(app.AllNeuronsDisplayPanel, 'text');
-            app.ColorMapEditField.Position = [100 5 170 22]; % 调整y坐标
+            app.ColorMapEditField.Position = [100 5 170 22];
             app.ColorMapEditField.Value = app.color_map;
             app.ColorMapEditField.Placeholder = 'colormap(e.g.,turbo) or fixed(e.g., #ff0000)';
             
             % UIAxes
             app.UIAxes = uiaxes(app.UIFigure);
-            title(app.UIAxes, 'ΔF/F Signal')
+            title(app.UIAxes, 'Signal')
             xlabel(app.UIAxes, 'Time (s)')
-            ylabel(app.UIAxes, 'ΔF/F')
+            ylabel(app.UIAxes, 'Raw Signal')
             app.UIAxes.Position = [350 50 800 600];
             grid(app.UIAxes, 'on');
+            
+            % Signal Type Dropdown
+            app.SignalTypeDropDown = uidropdown(app.UIFigure);
+            app.SignalTypeDropDown.Items = {'Raw Signal'};
+            app.SignalTypeDropDown.Value = 'Raw Signal';
+            app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
+            app.SignalTypeDropDown.Position = [360 660 100 22]; % Positioned at top-left of UIAxes
+            app.SignalTypeDropDown.Enable = 'off';
             
             app.UIFigure.Visible = 'on';
         end

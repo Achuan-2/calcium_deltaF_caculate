@@ -7,7 +7,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         FramerateHzLabel         matlab.ui.control.Label
         FramerateEditField       matlab.ui.control.NumericEditField
         LoadDataButton           matlab.ui.control.Button
-        BaselineParametersPanel  matlab.ui.container.Panel
+        DeltaFOverFCalculatePanel matlab.ui.container.Panel
+        CalculateZScoreCheckBox  matlab.ui.control.CheckBox
         BaselineMethodDropDownLabel matlab.ui.control.Label
         BaselineMethodDropDown    matlab.ui.control.DropDown
         PercentileEditFieldLabel matlab.ui.control.Label
@@ -39,20 +40,22 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         ROIIntervalEditField     matlab.ui.control.NumericEditField
         ColorMapLabel            matlab.ui.control.Label
         ColorMapEditField        matlab.ui.control.EditField
-        DisplayAllNeuronsButton matlab.ui.control.Button
+        DisplayAllNeuronsButton  matlab.ui.control.Button
         UIAxes                   matlab.ui.control.UIAxes
-        SignalTypeDropDown       matlab.ui.control.DropDown % New dropdown for signal type
+        SignalTypeDropDown       matlab.ui.control.DropDown
     end
     
     % Properties that store app data
     properties (Access = public)
         fluo_data                % Loaded fluorescence data (rows=neurons, cols=frames)
         dff_data                 % Calculated ΔF/F data
+        zscore_dff_data          % Calculated z-score ΔF/F data
         time_vector              % Time vector for plotting
-        framerate = 30           % Default framerate (Hz), updated from UI
+        framerate = 30           % Default framerate (Hz)
+        calculate_zscore = false % Flag to calculate z-score ΔF/F
         baseline_method = 'Percentile' % Default baseline method
-        percentile_value = '10:20' % Default percentile (string for 10-20% average or single value)
-        baseline_time = 'all'    % Default baseline time range (all or start:end in seconds)
+        percentile_value = '10:20' % Default percentile
+        baseline_time = 'all'    % Default baseline time range
         polynomial_order = 3      % Default polynomial order
         moving_window_sec = 20    % Default moving window size in seconds
         moving_percentile = 20    % Default moving percentile value
@@ -92,23 +95,32 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     ylabel(app.UIAxes, 'ΔF/F');
                     return;
                 end
+            elseif strcmp(app.signal_type, 'z-score ΔF/F')
+                ylabel_str = 'z-score ΔF/F';
+                if isempty(app.zscore_dff_data)
+                    title(app.UIAxes, 'No z-score ΔF/F data to plot.');
+                    xlabel(app.UIAxes, 'Time (s)');
+                    ylabel(app.UIAxes, 'z-score ΔF/F');
+                    return;
+                end
             end
             
             if app.display_all
-                % Plot all neurons
                 num_neurons = size(app.fluo_data, 1);
                 for n = 1:num_neurons
                     if strcmp(app.signal_type, 'Raw Signal')
                         plot(app.UIAxes, app.time_vector, app.fluo_data(n, :), ...
                             'DisplayName', sprintf('Neuron %d', n));
-                    else
+                    elseif strcmp(app.signal_type, 'ΔF/F')
                         plot(app.UIAxes, app.time_vector, app.dff_data(n, :), ...
+                            'DisplayName', sprintf('Neuron %d', n));
+                    else
+                        plot(app.UIAxes, app.time_vector, app.zscore_dff_data(n, :), ...
                             'DisplayName', sprintf('Neuron %d', n));
                     end
                 end
                 title(app.UIAxes, sprintf('%s for All %d Neurons', app.signal_type, num_neurons));
             else
-                % Plot single neuron
                 neuron_id = app.current_neuron_id;
                 if neuron_id > size(app.fluo_data, 1)
                     title(app.UIAxes, 'Invalid neuron selected.');
@@ -116,8 +128,10 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 end
                 if strcmp(app.signal_type, 'Raw Signal')
                     trace = app.fluo_data(neuron_id, :);
-                else
+                elseif strcmp(app.signal_type, 'ΔF/F')
                     trace = app.dff_data(neuron_id, :);
+                else
+                    trace = app.zscore_dff_data(neuron_id, :);
                 end
                 plot(app.UIAxes, app.time_vector, trace, 'b-', 'LineWidth', 1.5, ...
                     'DisplayName', sprintf('Neuron %d', neuron_id));
@@ -134,7 +148,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         
         % Calculate baseline F0
         function F0 = CalculateBaseline(app, fluo_trace)
-            % Filter data by time range if specified
             if ~strcmpi(app.baseline_time, 'all')
                 try
                     time_range = str2num(app.baseline_time);
@@ -196,10 +209,14 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             if ~isfield(app, 'display_figure_handles') || isempty(app.display_figure_handles) || ~isvalid(app.display_figure_handles)
                 app.display_figure_handles = figure('Name', 'All Neurons ΔF/F');
             end
-            plot.plot_signal(app.dff_data, ...
+            plot_signal_data = app.dff_data;
+            if strcmp(app.signal_type, 'z-score ΔF/F')
+                plot_signal_data = app.zscore_dff_data;
+            end
+            plot.plot_signal(plot_signal_data, ...
                 'frame_rate', app.framerate, ...
                 'color_map', app.color_map, ...
-                'signal_type', 'ΔF/F', ...
+                'signal_type', app.signal_type, ...
                 'fig', app.display_figure_handles, ...
                 'scalebar_signal', app.scalebar_signal, ...
                 'plot_scale_bar_time', app.plot_scale_bar_time, ...
@@ -227,6 +244,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.SignalTypeDropDown.Enable = 'off';
             title(app.UIAxes, 'Load Data to Begin');
             app.FramerateEditField.Value = app.framerate;
+            app.CalculateZScoreCheckBox.Value = app.calculate_zscore;
             app.PercentileEditField.Value = app.percentile_value;
             app.BaselineTimeEditField.Value = app.baseline_time;
             app.PolynomialOrderEditField.Value = app.polynomial_order;
@@ -245,7 +263,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         function LoadDataButtonPushed(app, event)
             f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','');
             [fileName, filePath] = uigetfile({'*.mat';'*.xlsx;*.xls'}, 'Select Data File');
-            delete(f_dummy); %delete the dummy figure
+            delete(f_dummy);
             if isequal(fileName, 0) || isequal(filePath, 0)
                 uialert(app.UIFigure, 'No file selected.', 'File Load');
                 return;
@@ -266,8 +284,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                         f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','');
                         [indx, tf] = listdlg('PromptString', {'Select fluorescence variable: (rows=neurons, cols=frames)'}, ...
                             'SelectionMode', 'single', 'ListString', varNames, ...
-                                'Name', 'Select Variable', 'OKString', 'Select');
-                        delete(f_dummy); %delete the dummy figure
+                            'Name', 'Select Variable', 'OKString', 'Select');
+                        delete(f_dummy);
                         if tf
                             app.fluo_data = dataLoaded.(varNames{indx});
                         else
@@ -286,7 +304,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                         [indx, tf] = listdlg('PromptString', {'Select sheet: (rows=neurons, cols=frames)'}, ...
                             'SelectionMode', 'single', 'ListString', sheetNames, ...
                             'Name', 'Select Sheet', 'OKString', 'Select');
-                        delete(f_dummy); %delete the dummy figure
+                        delete(f_dummy);
                         if tf
                             app.fluo_data = readmatrix(fullPath, 'Sheet', sheetNames{indx});
                         else
@@ -303,6 +321,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 [num_neurons, num_frames] = size(app.fluo_data);
                 app.time_vector = (0:num_frames-1) / app.framerate;
                 app.dff_data = [];
+                app.zscore_dff_data = [];
                 app.RunAnalysisButton.Enable = 'on';
                 app.NeuronDropDown.Enable = 'on';
                 app.PreviousNeuronButton.Enable = 'on';
@@ -322,6 +341,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, ['Error loading data: ' ME.message], 'Load Error');
                 app.fluo_data = [];
                 app.dff_data = [];
+                app.zscore_dff_data = [];
                 app.RunAnalysisButton.Enable = 'off';
                 app.SignalTypeDropDown.Enable = 'off';
             end
@@ -333,6 +353,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, 'No data loaded to analyze.', 'Analysis Error');
                 return;
             end
+            app.calculate_zscore = app.CalculateZScoreCheckBox.Value;
             app.baseline_method = app.BaselineMethodDropDown.Value;
             app.percentile_value = app.PercentileEditField.Value;
             app.baseline_time = app.BaselineTimeEditField.Value;
@@ -346,9 +367,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 end
                 if ~strcmpi(app.baseline_time, 'all')
                     time_range = str2num(app.baseline_time);
-                    if isempty(time_range) || any(time_range < 0)
-                        error('Invalid baseline time range. Use "all" or range like "1:30".');
-                    end
+                        if isempty(time_range) || any(time_range < 0)
+                            error('Invalid baseline time range. Use "all" or range like "1:30".');
+                        end
                 end
                 if strcmp(app.baseline_method, 'Percentile')
                     perc_str = app.percentile_value;
@@ -380,31 +401,45 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 return;
             end
             
-            progDlg = uiprogressdlg(app.UIFigure, 'Title', 'Computing ΔF/F', ...
+            progDlg = uiprogressdlg(app.UIFigure, 'Title', 'Computing Signals', ...
                 'Message', 'Initializing...', 'Cancelable', 'on');
             [num_neurons, num_frames] = size(app.fluo_data);
             app.dff_data = zeros(num_neurons, num_frames);
-            app.results = struct('neuron_id', {}, 'dff_trace', {});
+            if app.calculate_zscore
+                app.zscore_dff_data = zeros(num_neurons, num_frames);
+            else
+                app.zscore_dff_data = [];
+            end
+            app.results = struct('neuron_id', {}, 'dff_trace', {}, 'zscore_dff_trace', {});
             cleanupObj = onCleanup(@() delete(progDlg));
             for n = 1:num_neurons
                 if progDlg.CancelRequested
                     uialert(app.UIFigure, 'Analysis cancelled by user.', 'Analysis Cancelled');
                     app.dff_data = [];
+                    app.zscore_dff_data = [];
                     app.results = [];
                     return;
                 end
                 progDlg.Message = sprintf('Processing Neuron %d/%d', n, num_neurons);
                 progDlg.Value = n / num_neurons;
                 fluo_trace = app.fluo_data(n, :);
+                app.results(n).neuron_id = n;
                 try
                     F0 = CalculateBaseline(app, fluo_trace);
-                    app.dff_data(n, :) = (fluo_trace - F0) ./ F0;
-                    app.results(n).neuron_id = n;
-                    app.results(n).dff_trace = app.dff_data(n, :);
+                    dff_trace = (fluo_trace - F0) ./ F0;
+                    app.dff_data(n, :) = dff_trace;
+                    app.results(n).dff_trace = dff_trace;
+                    if app.calculate_zscore
+                        app.zscore_dff_data(n, :) = (dff_trace - mean(dff_trace)) / std(dff_trace);
+                        app.results(n).zscore_dff_trace = app.zscore_dff_data(n, :);
+                    else
+                        app.results(n).zscore_dff_trace = [];
+                    end
                 catch ME
-                    uialert(app.UIFigure, sprintf('Error computing ΔF/F for neuron %d: %s', n, ME.message), ...
+                    uialert(app.UIFigure, sprintf('Error computing signals for neuron %d: %s', n, ME.message), ...
                         'Computation Error');
                     app.dff_data = [];
+                    app.zscore_dff_data = [];
                     app.results = [];
                     return;
                 end
@@ -429,6 +464,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.DisplayAllNeuronsButton.Enable = 'on';
             app.SignalTypeDropDown.Items = {'Raw Signal', 'ΔF/F'};
             app.signal_type = 'ΔF/F';
+            if app.calculate_zscore
+                app.SignalTypeDropDown.Items = {'Raw Signal', 'ΔF/F', 'z-score ΔF/F'};
+            end
             app.SignalTypeDropDown.Value = 'ΔF/F';
             UpdatePlot(app);
         end
@@ -484,17 +522,17 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.roi_interval = app.ROIIntervalEditField.Value;
             app.color_map = app.ColorMapEditField.Value;
             app.display_all = true;
-            UpdatePlot(app); % Update UIAxes with all neurons
-            UpdateAllNeuronsPlot(app); % Update separate figure
+            UpdatePlot(app);
+            UpdateAllNeuronsPlot(app);
         end
         
         % Save results button pushed
         function SaveResultsButtonPushed(app, event)
-            if isempty(app.dff_data) || isempty(app.results)
+            if isempty(app.fluo_data)
                 uialert(app.UIFigure, 'No results to save.', 'Save Error');
                 return;
             end
-            [fileName, filePath] = uiputfile({'*.mat', 'MAT-file (*.mat)'}, 'Save ΔF/F Results');
+            [fileName, filePath] = uiputfile({'*.mat', 'MAT-file (*.mat)'}, 'Save Results');
             if isequal(fileName, 0) || isequal(filePath, 0)
                 uialert(app.UIFigure, 'Save cancelled.', 'Save Operation');
                 return;
@@ -504,8 +542,10 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             xlsxPath = fullfile(filePath, [name '.xlsx']);
             raw_sig = app.fluo_data;
             dff_sig = app.dff_data;
+            zscore_dff_sig = app.zscore_dff_data;
             time_vector = app.time_vector;
             framerate = app.framerate;
+            calculate_zscore = app.calculate_zscore;
             baseline_method = app.baseline_method;
             percentile_value = app.percentile_value;
             baseline_time = app.baseline_time;
@@ -520,13 +560,16 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             color_map = app.color_map;
             analysis_date = datestr(now);
             try
-                save(matPath, 'raw_sig', 'dff_sig', 'time_vector', 'framerate', ...
-                    'baseline_method', 'percentile_value', 'baseline_time', 'polynomial_order', ...
+                save(matPath, 'raw_sig', 'dff_sig', 'zscore_dff_sig', 'time_vector', 'framerate', ...
+                    'calculate_zscore', 'baseline_method', 'percentile_value', 'baseline_time', 'polynomial_order', ...
                     'moving_window_sec', 'moving_percentile', 'scalebar_signal', ...
                     'plot_scale_bar_time', 'scalebar_time', 'selected_roi_str', ...
                     'roi_interval', 'color_map', 'analysis_date', '-v7.3');
-                writematrix(dff_sig, xlsxPath, 'Sheet', 'dff_sig');
                 writematrix(raw_sig, xlsxPath, 'Sheet', 'raw_sig');
+                writematrix(dff_sig, xlsxPath, 'Sheet', 'dff_sig');
+                if app.calculate_zscore
+                    writematrix(zscore_dff_sig, xlsxPath, 'Sheet', 'zscore_dff_sig');
+                end
                 uialert(app.UIFigure, sprintf('Results saved to:\n%s\n%s', matPath, xlsxPath), ...
                     'Save Success', 'Icon', 'success');
             catch ME
@@ -551,13 +594,13 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         % Create UI components
         function createComponents(app)
             app.UIFigure = uifigure('Visible', 'off');
-            app.UIFigure.Position = [100 100 1200 700];
+            app.UIFigure.Position = [100 100 1200 750]; % Increased height from 700 to 750
             app.UIFigure.Name = 'Calcium ΔF/F Calculator';
             
             % File Operations Panel
             app.FileOperationsPanel = uipanel(app.UIFigure);
             app.FileOperationsPanel.Title = 'File Operations';
-            app.FileOperationsPanel.Position = [20 580 300 100];
+            app.FileOperationsPanel.Position = [20 620 300 100]; % Adjusted y-position
             app.FramerateHzLabel = uilabel(app.FileOperationsPanel);
             app.FramerateHzLabel.HorizontalAlignment = 'right';
             app.FramerateHzLabel.Position = [10 40 90 22];
@@ -571,63 +614,67 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.LoadDataButton.Position = [10 10 100 22];
             app.LoadDataButton.Text = 'Load Data';
             
-            % Baseline Parameters Panel
-            app.BaselineParametersPanel = uipanel(app.UIFigure);
-            app.BaselineParametersPanel.Title = 'Baseline Parameters';
-            app.BaselineParametersPanel.Position = [20 355 300 220];
-            app.BaselineMethodDropDownLabel = uilabel(app.BaselineParametersPanel);
+            % Delta F/F Calculate Panel
+            app.DeltaFOverFCalculatePanel = uipanel(app.UIFigure);
+            app.DeltaFOverFCalculatePanel.Title = 'ΔF/F Calculate';
+            app.DeltaFOverFCalculatePanel.Position = [20 365 300 250]; % Increased height from 220 to 250
+            app.CalculateZScoreCheckBox = uicheckbox(app.DeltaFOverFCalculatePanel);
+            app.CalculateZScoreCheckBox.Text = 'Calculate z-score ΔF/F';
+            app.CalculateZScoreCheckBox.Position = [10 205 150 22];
+            app.CalculateZScoreCheckBox.Value = app.calculate_zscore;
+            app.BaselineMethodDropDownLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.BaselineMethodDropDownLabel.HorizontalAlignment = 'right';
-            app.BaselineMethodDropDownLabel.Position = [10 175 100 22];
+            app.BaselineMethodDropDownLabel.Position = [10 178 100 22];
             app.BaselineMethodDropDownLabel.Text = 'Baseline Method:';
-            app.BaselineMethodDropDown = uidropdown(app.BaselineParametersPanel);
+            app.BaselineMethodDropDown = uidropdown(app.DeltaFOverFCalculatePanel);
             app.BaselineMethodDropDown.Items = {'Percentile', 'Polynomial', 'Moving Percentile'};
             app.BaselineMethodDropDown.ValueChangedFcn = createCallbackFcn(app, @BaselineMethodDropDownValueChanged, true);
-            app.BaselineMethodDropDown.Position = [120 175 150 22];
+            app.BaselineMethodDropDown.Position = [120 178 150 22];
             app.BaselineMethodDropDown.Value = app.baseline_method;
-            app.PercentileEditFieldLabel = uilabel(app.BaselineParametersPanel);
+            app.PercentileEditFieldLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.PercentileEditFieldLabel.HorizontalAlignment = 'right';
-            app.PercentileEditFieldLabel.Position = [10 148 100 22];
+            app.PercentileEditFieldLabel.Position = [10 150 100 22];
             app.PercentileEditFieldLabel.Text = 'Percentile';
-            app.PercentileEditField = uieditfield(app.BaselineParametersPanel, 'text');
-            app.PercentileEditField.Position = [120 148 150 22];
+            app.PercentileEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'text');
+            app.PercentileEditField.Position = [120 150 150 22];
             app.PercentileEditField.Value = app.percentile_value;
             app.PercentileEditField.Placeholder = '10:20 or 20';
-            app.BaselineTimeLabel = uilabel(app.BaselineParametersPanel);
+            app.BaselineTimeLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.BaselineTimeLabel.HorizontalAlignment = 'right';
-            app.BaselineTimeLabel.Position = [10 120 100 22];
+            app.BaselineTimeLabel.Position = [10 122 100 22];
             app.BaselineTimeLabel.Text = 'Baseline Time(s):';
-            app.BaselineTimeEditField = uieditfield(app.BaselineParametersPanel, 'text');
-            app.BaselineTimeEditField.Position = [120 120 150 22];
+            app.BaselineTimeEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'text');
+            app.BaselineTimeEditField.Position = [120 122 150 22];
             app.BaselineTimeEditField.Value = app.baseline_time;
             app.BaselineTimeEditField.Placeholder = 'all or 1:30';
-            app.PolynomialOrderLabel = uilabel(app.BaselineParametersPanel);
+            app.PolynomialOrderLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.PolynomialOrderLabel.HorizontalAlignment = 'right';
-            app.PolynomialOrderLabel.Position = [10 92 100 22];
+            app.PolynomialOrderLabel.Position = [10 94 100 22];
             app.PolynomialOrderLabel.Text = 'Polynomial Order:';
-            app.PolynomialOrderEditField = uieditfield(app.BaselineParametersPanel, 'numeric');
+            app.PolynomialOrderEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
             app.PolynomialOrderEditField.ValueDisplayFormat = '%d';
-            app.PolynomialOrderEditField.Position = [120 92 150 22];
+            app.PolynomialOrderEditField.Position = [120 94 150 22];
             app.PolynomialOrderEditField.Value = app.polynomial_order;
             app.PolynomialOrderEditField.Enable = 'off';
-            app.MovingWindowLabel = uilabel(app.BaselineParametersPanel);
+            app.MovingWindowLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.MovingWindowLabel.HorizontalAlignment = 'right';
-            app.MovingWindowLabel.Position = [10 64 100 22];
+            app.MovingWindowLabel.Position = [10 66 100 22];
             app.MovingWindowLabel.Text = 'Window Size (s):';
-            app.MovingWindowEditField = uieditfield(app.BaselineParametersPanel, 'numeric');
+            app.MovingWindowEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
             app.MovingWindowEditField.ValueDisplayFormat = '%.2f';
-            app.MovingWindowEditField.Position = [120 64 150 22];
+            app.MovingWindowEditField.Position = [120 66 150 22];
             app.MovingWindowEditField.Value = app.moving_window_sec;
             app.MovingWindowEditField.Enable = 'off';
-            app.MovingPercentileLabel = uilabel(app.BaselineParametersPanel);
+            app.MovingPercentileLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.MovingPercentileLabel.HorizontalAlignment = 'right';
-            app.MovingPercentileLabel.Position = [10 36 100 22];
+            app.MovingPercentileLabel.Position = [10 38 100 22];
             app.MovingPercentileLabel.Text = 'Moving Percentile:';
-            app.MovingPercentileEditField = uieditfield(app.BaselineParametersPanel, 'numeric');
+            app.MovingPercentileEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
             app.MovingPercentileEditField.ValueDisplayFormat = '%.2f';
-            app.MovingPercentileEditField.Position = [120 36 150 22];
+            app.MovingPercentileEditField.Position = [120 38 150 22];
             app.MovingPercentileEditField.Value = app.moving_percentile;
             app.MovingPercentileEditField.Enable = 'off';
-            app.RunAnalysisButton = uibutton(app.BaselineParametersPanel, 'push');
+            app.RunAnalysisButton = uibutton(app.DeltaFOverFCalculatePanel, 'push');
             app.RunAnalysisButton.ButtonPushedFcn = createCallbackFcn(app, @RunAnalysisButtonPushed, true);
             app.RunAnalysisButton.Position = [10 10 100 22];
             app.RunAnalysisButton.Text = 'Run Analysis';
@@ -635,7 +682,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             % Neuron Display Panel
             app.NeuronDisplayPanel = uipanel(app.UIFigure);
             app.NeuronDisplayPanel.Title = 'Neuron Display';
-            app.NeuronDisplayPanel.Position = [20 220 300 120];
+            app.NeuronDisplayPanel.Position = [20 240 300 120]; % Adjusted y-position
             app.SelectNeuronLabel = uilabel(app.NeuronDisplayPanel);
             app.SelectNeuronLabel.HorizontalAlignment = 'right';
             app.SelectNeuronLabel.Position = [10 70 85 22];
@@ -711,7 +758,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             title(app.UIAxes, 'Signal')
             xlabel(app.UIAxes, 'Time (s)')
             ylabel(app.UIAxes, 'Raw Signal')
-            app.UIAxes.Position = [350 50 800 600];
+            app.UIAxes.Position = [350 50 800 650]; % Increased height from 600 to 650
             grid(app.UIAxes, 'on');
             
             % Signal Type Dropdown
@@ -719,7 +766,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.SignalTypeDropDown.Items = {'Raw Signal'};
             app.SignalTypeDropDown.Value = 'Raw Signal';
             app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
-            app.SignalTypeDropDown.Position = [360 660 100 22]; % Positioned at top-left of UIAxes
+            app.SignalTypeDropDown.Position = [360 710 100 22]; % Adjusted y-position
             app.SignalTypeDropDown.Enable = 'off';
             
             app.UIFigure.Visible = 'on';

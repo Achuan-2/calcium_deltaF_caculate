@@ -594,13 +594,10 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 % Convert matrices to tables with time information for better Excel output
                 
                 % Create table for raw signals with neuron columns
-                raw_sig_table = array2table(raw_sig');
-                var_names = arrayfun(@(x) sprintf('Neuron_%d', x), 1:size(raw_sig,1), 'UniformOutput', false);
-                raw_sig_table.Properties.VariableNames = var_names;
+                raw_sig_table = array2table(raw_sig);
                 
                 % Create table for dff signals
-                dff_sig_table = array2table(dff_sig');
-                dff_sig_table.Properties.VariableNames = var_names;
+                dff_sig_table = array2table(dff_sig);
                 
                 % Write tables to Excel file
                 writetable(raw_sig_table, xlsxPath, 'Sheet', 'raw_sig',WriteMode='replacefile');
@@ -608,9 +605,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 
                 % Write z-score data if available
                 if app.calculate_zscore
-                    zscore_sig_table = array2table(zscore_dff_sig');
-                    zscore_sig_table.Properties.VariableNames = var_names;
-                    writetable(zscore_sig_table, xlsxPath, 'Sheet', 'zscore_dff_sig',WriteMode='inplace');
+                    zscore_sig_table = array2table(zscore_dff_sig);
+                    writetable(zscore_sig_table, xlsxPath, 'Sheet', 'zscore_dff_sig', WriteMode='inplace');
                 end
                 
                 % Create a parameters table for easy reference

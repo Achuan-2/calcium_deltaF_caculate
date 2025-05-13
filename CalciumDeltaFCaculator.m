@@ -522,7 +522,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.roi_interval = app.ROIIntervalEditField.Value;
             app.color_map = app.ColorMapEditField.Value;
             app.display_all = true;
-            UpdatePlot(app);
+            % UpdatePlot(app);
             UpdateAllNeuronsPlot(app);
         end
         
@@ -563,16 +563,76 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             color_map = app.color_map;
             analysis_date = datestr(now);
             try
-                save(matPath, 'raw_sig', 'dff_sig', 'zscore_dff_sig', 'time_vector', 'framerate', ...
-                    'calculate_zscore', 'baseline_method', 'percentile_value', 'baseline_time', 'polynomial_order', ...
-                    'moving_window_sec', 'moving_percentile', 'scalebar_signal', ...
-                    'plot_scale_bar_time', 'scalebar_time', 'selected_roi_str', ...
-                    'roi_interval', 'color_map', 'analysis_date', '-v7.3');
-                writematrix(raw_sig, xlsxPath, 'Sheet', 'raw_sig');
-                writematrix(dff_sig, xlsxPath, 'Sheet', 'dff_sig');
+                % Create a struct with method-specific parameters to save
+                saveParams = struct('raw_sig', raw_sig, 'dff_sig', dff_sig, ...
+                    'time_vector', time_vector, 'framerate', framerate, ...
+                    'calculate_zscore', calculate_zscore, 'baseline_method', baseline_method, ...
+                    'scalebar_signal', scalebar_signal, 'plot_scale_bar_time', plot_scale_bar_time, ...
+                    'scalebar_time', scalebar_time, 'selected_roi_str', selected_roi_str, ...
+                    'roi_interval', roi_interval, 'color_map', color_map, 'analysis_date', analysis_date);
+                
+                % Add z-score data if calculated
                 if app.calculate_zscore
-                    writematrix(zscore_dff_sig, xlsxPath, 'Sheet', 'zscore_dff_sig');
+                    saveParams.zscore_dff_sig = zscore_dff_sig;
                 end
+                
+                % Add method-specific parameters
+                if strcmp(baseline_method, 'Percentile')
+                    saveParams.percentile_value = percentile_value;
+                    saveParams.baseline_time = baseline_time;
+                elseif strcmp(baseline_method, 'Polynomial')
+                    saveParams.polynomial_order = polynomial_order;
+                elseif strcmp(baseline_method, 'Moving Percentile')
+                    saveParams.moving_window_sec = moving_window_sec;
+                    saveParams.moving_percentile = moving_percentile;
+                end
+                
+                % Save the parameters to MAT file
+                save(matPath, '-struct', 'saveParams', '-v7.3');
+                % Convert matrices to tables with time information for better Excel output
+                
+                % Create table for raw signals with neuron columns
+                raw_sig_table = array2table(raw_sig');
+                var_names = arrayfun(@(x) sprintf('Neuron_%d', x), 1:size(raw_sig,1), 'UniformOutput', false);
+                raw_sig_table.Properties.VariableNames = var_names;
+                
+                % Create table for dff signals
+                dff_sig_table = array2table(dff_sig');
+                dff_sig_table.Properties.VariableNames = var_names;
+                
+                % Write tables to Excel file
+                writetable(raw_sig_table, xlsxPath, 'Sheet', 'raw_sig',WriteMode='replacefile');
+                writetable(dff_sig_table, xlsxPath, 'Sheet', 'dff_sig',WriteMode='inplace');
+                
+                % Write z-score data if available
+                if app.calculate_zscore
+                    zscore_sig_table = array2table(zscore_dff_sig');
+                    zscore_sig_table.Properties.VariableNames = var_names;
+                    writetable(zscore_sig_table, xlsxPath, 'Sheet', 'zscore_dff_sig',WriteMode='inplace');
+                end
+                
+                % Create a parameters table for easy reference
+                % Create parameters table based on selected baseline method
+                params_headers = {'Framerate_Hz', 'Analysis_Date', 'Calculate_ZScore'};
+                params_values = {framerate, analysis_date, calculate_zscore};
+                
+                % Add method-specific parameters
+                params_headers = [params_headers, 'Baseline_Method'];
+                params_values = [params_values, baseline_method];
+                
+                if strcmp(baseline_method, 'Percentile')
+                    params_headers = [params_headers, 'Percentile_Value', 'Baseline_Time'];
+                    params_values = [params_values, percentile_value, baseline_time];
+                elseif strcmp(baseline_method, 'Polynomial')
+                    params_headers = [params_headers, 'Polynomial_Order'];
+                    params_values = [params_values, polynomial_order];
+                elseif strcmp(baseline_method, 'Moving Percentile')
+                    params_headers = [params_headers, 'Moving_Window_sec', 'Moving_Percentile'];
+                    params_values = [params_values, moving_window_sec, moving_percentile];
+                end
+                
+                params_table = array2table(params_values', 'VariableNames', {'Value'}, 'RowNames', params_headers');
+                writetable(params_table, xlsxPath, 'Sheet', 'Parameters', 'WriteRowNames', true, WriteMode='inplace');
                 close(progressDlg);
                 uialert(app.UIFigure, sprintf('Results saved to:\n%s\n%s', matPath, xlsxPath), ...
                     'Save Success', 'Icon', 'success');

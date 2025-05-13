@@ -743,30 +743,30 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.RunAnalysisButton.ButtonPushedFcn = createCallbackFcn(app, @RunAnalysisButtonPushed, true);
             app.RunAnalysisButton.Position = [10 10 100 22];
             app.RunAnalysisButton.Text = 'Run Analysis';
-            
+            app.SaveResultsButton = uibutton(app.DeltaFOverFCalculatePanel, 'push');
+            app.SaveResultsButton.ButtonPushedFcn = createCallbackFcn(app, @SaveResultsButtonPushed, true);
+            app.SaveResultsButton.Position = [115 10 100 22];
+            app.SaveResultsButton.Text = 'Save Results';
             % Neuron Display Panel
             app.NeuronDisplayPanel = uipanel(app.UIFigure);
             app.NeuronDisplayPanel.Title = 'Neuron Display';
-            app.NeuronDisplayPanel.Position = [20 240 300 120]; % Adjusted y-position
+            app.NeuronDisplayPanel.Position = [20 245 300 110]; % Adjusted y-position
             app.SelectNeuronLabel = uilabel(app.NeuronDisplayPanel);
             app.SelectNeuronLabel.HorizontalAlignment = 'right';
-            app.SelectNeuronLabel.Position = [10 70 85 22];
+            app.SelectNeuronLabel.Position = [10 65 85 22];
             app.SelectNeuronLabel.Text = 'Select Neuron:';
             app.NeuronDropDown = uidropdown(app.NeuronDisplayPanel);
             app.NeuronDropDown.ValueChangedFcn = createCallbackFcn(app, @NeuronDropDownValueChanged, true);
-            app.NeuronDropDown.Position = [105 70 170 22];
+            app.NeuronDropDown.Position = [105 65 170 22];
             app.PreviousNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
             app.PreviousNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @PreviousNeuronButtonPushed, true);
-            app.PreviousNeuronButton.Position = [10 40 85 22];
+            app.PreviousNeuronButton.Position = [10 35 85 22];
             app.PreviousNeuronButton.Text = 'Previous';
             app.NextNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
             app.NextNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @NextNeuronButtonPushed, true);
-            app.NextNeuronButton.Position = [105 40 85 22];
+            app.NextNeuronButton.Position = [105 35 85 22];
             app.NextNeuronButton.Text = 'Next';
-            app.SaveResultsButton = uibutton(app.NeuronDisplayPanel, 'push');
-            app.SaveResultsButton.ButtonPushedFcn = createCallbackFcn(app, @SaveResultsButtonPushed, true);
-            app.SaveResultsButton.Position = [10 15 100 22];
-            app.SaveResultsButton.Text = 'Save Results';
+
             
             % All Neurons Display Panel
             app.AllNeuronsDisplayPanel = uipanel(app.UIFigure);

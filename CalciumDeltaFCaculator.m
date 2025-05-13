@@ -47,6 +47,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
     
     % Properties that store app data
     properties (Access = public)
+        selectedFolder = ''        % Selected folder for data
         fluo_data                % Loaded fluorescence data (rows=neurons, cols=frames)
         dff_data                 % Calculated ΔF/F data
         zscore_dff_data          % Calculated z-score ΔF/F data
@@ -268,6 +269,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, 'No file selected.', 'File Load');
                 return;
             end
+            app.selectedFolder = filePath;
             fullPath = fullfile(filePath, fileName);
             [~, ~, ext] = fileparts(fileName);
             app.framerate = app.FramerateEditField.Value;
@@ -533,7 +535,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 return;
             end
             % 添加一个进度条
-            [fileName, filePath] = uiputfile({'*.mat', 'MAT-file (*.mat)'}, 'Save Results');
+            [fileName, filePath] = uiputfile({'*.mat', 'MAT-file (*.mat)'}, 'Save Results', app.selectedFolder);
             if isequal(fileName, 0) || isequal(filePath, 0)
                 uialert(app.UIFigure, 'Save cancelled.', 'Save Operation');
                 return;

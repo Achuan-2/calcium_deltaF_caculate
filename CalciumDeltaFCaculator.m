@@ -532,11 +532,14 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, 'No results to save.', 'Save Error');
                 return;
             end
+            % 添加一个进度条
             [fileName, filePath] = uiputfile({'*.mat', 'MAT-file (*.mat)'}, 'Save Results');
             if isequal(fileName, 0) || isequal(filePath, 0)
                 uialert(app.UIFigure, 'Save cancelled.', 'Save Operation');
                 return;
             end
+            progressDlg = uiprogressdlg(app.UIFigure,'Title','Saving Data','Indeterminate','on');
+            drawnow
             [~, name, ~] = fileparts(fileName);
             matPath = fullfile(filePath, [name '.mat']);
             xlsxPath = fullfile(filePath, [name '.xlsx']);
@@ -570,9 +573,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 if app.calculate_zscore
                     writematrix(zscore_dff_sig, xlsxPath, 'Sheet', 'zscore_dff_sig');
                 end
+                close(progressDlg);
                 uialert(app.UIFigure, sprintf('Results saved to:\n%s\n%s', matPath, xlsxPath), ...
                     'Save Success', 'Icon', 'success');
             catch ME
+                close(progressDlg);
                 uialert(app.UIFigure, ['Error saving results: ' ME.message], 'Save Error');
             end
         end

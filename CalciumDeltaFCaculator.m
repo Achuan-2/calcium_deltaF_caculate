@@ -47,7 +47,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         ExportPlotButton matlab.ui.control.Button
         SetWidthButton matlab.ui.control.Button
         SetHeightButton matlab.ui.control.Button
-        ExportAllNeuronsButton matlab.ui.control.Button % NEW: Export All Neurons Button
+        ExportAllNeuronsButton matlab.ui.control.Button
+        SetPlotColorButton matlab.ui.control.Button % NEW: Set Plot Color Button
     end
 
     % Properties that store app data
@@ -77,6 +78,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         color_map = 'turbo' % Default color map
         signal_type = 'Raw Signal' % Current signal type to display
         loaded_file_name = '' % Name of the loaded file
+        current_plot_color = [0 0.4470 0.7410] % NEW: Property to store current plot color (default MATLAB blue)
     end
 
     methods (Access = private)
@@ -137,12 +139,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                  return;
             end
 
-
             if app.display_all
                 num_neurons = size(current_data_to_plot, 1);
                 for n = 1:num_neurons
                     plot(app.UIAxes, app.time_vector, current_data_to_plot(n, :), ...
-                        'DisplayName', sprintf('Neuron %d', n));
+                        'DisplayName', sprintf('Neuron %d', n)); % Uses default color cycling
                 end
                 title(app.UIAxes, sprintf('%s for All %d Neurons', app.signal_type, num_neurons));
             else
@@ -154,7 +155,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     return;
                 end
                 trace = current_data_to_plot(neuron_id, :);
-                plot(app.UIAxes, app.time_vector, trace, 'b-', 'LineWidth', 1.5, ...
+                % MODIFIED: Use app.current_plot_color for single neuron trace
+                plot(app.UIAxes, app.time_vector, trace, 'Color', app.current_plot_color, 'LineWidth', 1.5, ...
                     'DisplayName', sprintf('Neuron %d', neuron_id));
                 title(app.UIAxes, sprintf('%s for Neuron %d', app.signal_type, neuron_id));
             end
@@ -206,14 +208,13 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                  close(fig); return;
             end
 
-            plot(ax, app.time_vector, trace, 'b-', 'LineWidth', 1.5);
+            % MODIFIED: Use app.current_plot_color for exported single neuron plot
+            plot(ax, app.time_vector, trace, 'Color', app.current_plot_color, 'LineWidth', 1.5);
             title(ax, sprintf('%s for Neuron %d', app.signal_type, app.current_neuron_id));
             xlabel(ax, 'Time (s)');
             ylabel(ax, ylabel_str);
             grid(ax, 'on');
             xlim(ax, [app.time_vector(1), app.time_vector(end)]);
-
-
         end
 
         % Set axes width
@@ -255,6 +256,28 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     'Height Updated', 'Icon', 'success');
             end
         end
+        
+        % NEW: Callback for Set Plot Color button
+        function SetPlotColorButtonPushed(app, event)
+            % Use the current plot color as the default in the color picker
+            selected_color = uisetcolor(app.current_plot_color, 'Select Plot Color');
+
+            % uisetcolor returns the input color if the user cancels, 
+            % or the new color if the user clicks OK.
+            % It returns 0 if the figure is closed without clicking OK/Cancel (e.g., window X button).
+            if isequal(size(selected_color), [1 3]) % Check if a valid color was returned (not 0 from closing window)
+                if ~isequal(selected_color, app.current_plot_color)
+                    figure(app.UIFigure); % Bring the app figure to front
+                    app.current_plot_color = selected_color;
+                    UpdatePlot(app); % Redraw the plot with the new color
+                    uialert(app.UIFigure, 'Plot color updated.', 'Color Updated', 'Icon', 'success');
+                % else: color is the same as before (could be cancel, or picked same color)
+                % No need for an alert if the color didn't change.
+                end
+            % else: uisetcolor dialog was closed abruptly, selected_color might be 0. Do nothing.
+            end
+        end
+
 
         % Calculate baseline F0
         function F0 = CalculateBaseline(app, fluo_trace)
@@ -300,7 +323,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 warning('Baseline trace is empty after time selection. Using full trace for this neuron.');
                 baseline_trace = fluo_trace;
             end
-
 
             switch app.baseline_method
                 case 'Percentile'
@@ -406,7 +428,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             end
         end
         
-        % NEW: Callback for FramerateEditField value changed
+        % Callback for FramerateEditField value changed
         function FramerateEditFieldValueChanged(app, event)
             new_framerate = app.FramerateEditField.Value;
             if isnan(new_framerate) || new_framerate <= 0
@@ -428,14 +450,14 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 % Update all neurons plot if it's open and valid
                 if isfield(app, 'display_figure_handles') && ~isempty(app.display_figure_handles) && isvalid(app.display_figure_handles)
                     if app.display_all % Only if it was meant to be displaying all neurons
-                         UpdateAllNeuronsPlot(app); % This will replot with new framerate/time_vector
+                          UpdateAllNeuronsPlot(app); % This will replot with new framerate/time_vector
                     end
                 end
             else
             end
         end
 
-        % NEW: Callback for Export All Neurons button
+        % Callback for Export All Neurons button
         function ExportAllNeuronsButtonPushed(app, event)
             if isempty(app.fluo_data)
                 uialert(app.UIFigure, 'No data loaded to export.', 'Export Error');
@@ -490,8 +512,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
 
             num_neurons = size(data_to_export, 1);
             progDlg = uiprogressdlg(app.UIFigure, 'Title', 'Exporting All Neuron Plots', ...
-                                   'Message', sprintf('Starting export for %d neurons...', num_neurons), ...
-                                   'Cancelable', 'on', 'Indeterminate', 'off');
+                                    'Message', sprintf('Starting export for %d neurons...', num_neurons), ...
+                                    'Cancelable', 'on', 'Indeterminate', 'off');
             cleanupProgDlg = onCleanup(@() delete(progDlg)); % Ensure dialog closes
 
             % Get UIAxes dimensions for exported figures
@@ -508,7 +530,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 export_fig_width = 600;
                 export_fig_height = 400;
             end
-
 
             for n = 1:num_neurons
                 if progDlg.CancelRequested
@@ -528,10 +549,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                                       'Position', [100, 100, export_fig_width, export_fig_height]); % Use UIAxes dimensions
                     ax_export = axes(fig_export);
 
-                    plot(ax_export, app.time_vector, trace_data, 'b-', 'LineWidth', 1); % Thinner line for potentially many plots
+                    % MODIFIED: Use app.current_plot_color for all individually exported neuron plots
+                    plot(ax_export, app.time_vector, trace_data, 'Color', app.current_plot_color, 'LineWidth', 1); 
                     title(ax_export, sprintf('%s - Neuron %d', selected_signal_type, n), 'Interpreter', 'none');
                     xlabel(ax_export, 'Time (s)');
-                    ylabel(ax_export, strrep(selected_signal_type, 'ΔF/F', 'dF/F')); % ylabel_str was file_suffix_type
+                    ylabel(ax_export, strrep(selected_signal_type, 'ΔF/F', 'dF/F')); 
                     grid(ax_export, 'on');
                     xlim(ax_export, [app.time_vector(1), app.time_vector(end)]);
 
@@ -540,7 +562,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     pngFilePath = fullfile(exportDir, [baseFigName '.png']);
 
                     savefig(fig_export, figFilePath);
-                    exportgraphics(ax_export, pngFilePath, 'Resolution', 150); % Slightly lower res for faster batch export
+                    exportgraphics(ax_export, pngFilePath, 'Resolution', 150); 
 
                     close(fig_export);
                 catch ME_export_neuron
@@ -548,7 +570,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                         close(fig_export);
                     end
                     warning('Error exporting neuron %d: %s', n, ME_export_neuron.message);
-                    % Optionally, ask user if they want to continue
                     choice = uiconfirm(app.UIFigure, ...
                         sprintf('Error exporting neuron %d: %s\n\nDo you want to continue with other neurons?', n, ME_export_neuron.message), ...
                         'Export Error', 'Options', {'Continue', 'Cancel All'}, 'DefaultOption', 'Continue');
@@ -565,7 +586,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             uialert(app.UIFigure, sprintf('All neuron plots exported successfully to:\n%s', exportDir), ...
                     'Export Complete', 'Icon', 'success');
         end
-
 
     end
 
@@ -585,7 +605,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.NeuronDropDown.Value = 'N/A';
             app.SignalTypeDropDown.Items = {'Raw Signal'};
             app.SignalTypeDropDown.Enable = 'off';
-            app.ExportAllNeuronsButton.Enable = 'off'; % NEW: Disable initially
+            app.ExportAllNeuronsButton.Enable = 'off'; 
             title(app.UIAxes, 'Load Data to Begin');
             app.FramerateEditField.Value = app.framerate;
             app.CalculateZScoreCheckBox.Value = app.calculate_zscore;
@@ -609,7 +629,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
 
         % Load data button pushed
         function LoadDataButtonPushed(app, event)
-            f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','','Visible','off'); % Keep dummy invisible
+            f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','','Visible','off'); 
             [fileName, filePath] = uigetfile({'*.mat';'*.xlsx;*.xls'}, 'Select Data File');
             delete(f_dummy);
             if isequal(fileName, 0) || isequal(filePath, 0)
@@ -628,7 +648,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                  uialert(app.UIFigure, 'Invalid framerate. Please set a positive value.', 'Framerate Error');
                  app.FramerateEditField.Value = 30; % Reset to a default
                  app.framerate = 30;
-                 return; % Or allow loading with default and warn
+                 return; 
             end
 
             try
@@ -689,10 +709,10 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 app.PreviousNeuronButton.Enable = 'on';
                 app.NextNeuronButton.Enable = 'on';
                 app.DisplayAllNeuronsButton.Enable = 'on';
-                app.ExportAllNeuronsButton.Enable = 'on'; % NEW: Enable button
+                app.ExportAllNeuronsButton.Enable = 'on'; 
                 
                 neuronItems = arrayfun(@(x) sprintf('Neuron %d', x), 1:num_neurons, 'UniformOutput', false);
-                 if isempty(neuronItems) % Should not happen if fluo_data is valid matrix
+                 if isempty(neuronItems) 
                     app.NeuronDropDown.Items = {'N/A'};
                     app.NeuronDropDown.Value = 'N/A';
                     app.current_neuron_id = 0;
@@ -723,7 +743,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 app.PreviousNeuronButton.Enable = 'off';
                 app.NextNeuronButton.Enable = 'off';
                 app.DisplayAllNeuronsButton.Enable = 'off';
-                app.ExportAllNeuronsButton.Enable = 'off'; % NEW: Disable on error
+                app.ExportAllNeuronsButton.Enable = 'off'; 
                 app.SaveResultsButton.Enable = 'off';
                 app.LoadedFileLabel.Text = 'No file loaded';
                 app.NeuronDropDown.Items = {'N/A'};
@@ -755,7 +775,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     % Basic validation for baseline_time format (more in CalculateBaseline)
                     if ~matches(app.baseline_time, digitsPattern | (digitsPattern + ":" + digitsPattern))
                         if ~matches(app.baseline_time, textBoundary + (("0"|"."|[digitsPattern])+".*") + textBoundary) % allow decimals
-                             % error('Invalid baseline time format. Use "all", "1:30", "10.5:20", or "30".');
+                            % error('Invalid baseline time format. Use "all", "1:30", "10.5:20", or "30".');
                         end
                     end
                 end
@@ -945,12 +965,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.roi_interval = app.ROIIntervalEditField.Value;
             app.color_map = app.ColorMapEditField.Value;
             
-            % No need to set app.display_all = true here, 
-            % UpdateAllNeuronsPlot is for the separate figure.
-            % The main UIAxes plot is controlled by app.display_all for its own context.
-            % However, if the intention was to also show all in UIAxes:
-            % app.display_all = true; 
-            % UpdatePlot(app); % This would update UIAxes
+
             
             UpdateAllNeuronsPlot(app); % This updates the separate figure window
         end
@@ -999,7 +1014,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 'moving_percentile', app.moving_percentile, ...
                 'analysis_date', datestr(now) ...
             );
-            saveData.detailed_results_per_neuron = app.results; % Contains neuron_id, dff_trace, zscore_dff_trace
+            saveData.detailed_results_per_neuron = app.results; 
 
             % Parameters for "All Neurons Plot" if any
             saveData.all_neurons_plot_settings = struct(...
@@ -1055,7 +1070,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 params_table = table(param_values(:), 'RowNames', param_names, 'VariableNames', {'Value'});
                 writetable(params_table, xlsxPath, 'Sheet', 'AnalysisParameters', 'WriteRowNames', true, 'WriteMode', 'inplace');
 
-
                 close(progressDlg);
                 uialert(app.UIFigure, sprintf('Results saved to:\n%s\n%s', matPath, xlsxPath), ...
                     'Save Success', 'Icon', 'success');
@@ -1095,9 +1109,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         function createComponents(app)
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1200 750];
-            app.UIFigure.Name = 'Calcium ΔF/F Calculator v2'; % Updated Name
+            app.UIFigure.Name = 'Calcium ΔF/F Calculator v2.1'; % Updated Name slightly
             app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @(src,event) delete(app), true);
-
 
             % File Operations Panel
             app.FileOperationsPanel = uipanel(app.UIFigure);
@@ -1111,7 +1124,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.FramerateEditField.ValueDisplayFormat = '%.2f';
             app.FramerateEditField.Position = [110 40 100 22];
             app.FramerateEditField.Value = app.framerate;
-            % NEW: Add ValueChangedFcn for FramerateEditField
             app.FramerateEditField.ValueChangedFcn = createCallbackFcn(app, @FramerateEditFieldValueChanged, true);
 
             app.LoadDataButton = uibutton(app.FileOperationsPanel, 'push');
@@ -1128,7 +1140,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.DeltaFOverFCalculatePanel.Position = [20 365 300 250];
             app.CalculateZScoreCheckBox = uicheckbox(app.DeltaFOverFCalculatePanel);
             app.CalculateZScoreCheckBox.Text = 'Calculate z-score ΔF/F';
-            app.CalculateZScoreCheckBox.Position = [10 205 180 22]; % Increased width
+            app.CalculateZScoreCheckBox.Position = [10 205 180 22]; 
             app.CalculateZScoreCheckBox.Value = app.calculate_zscore;
             app.BaselineMethodDropDownLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.BaselineMethodDropDownLabel.HorizontalAlignment = 'right';
@@ -1181,7 +1193,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.MovingPercentileLabel.Position = [10 38 100 22];
             app.MovingPercentileLabel.Text = 'Moving Percentile:';
             app.MovingPercentileEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
-            app.MovingPercentileEditField.ValueDisplayFormat = '%.1f'; % Allow one decimal
+            app.MovingPercentileEditField.ValueDisplayFormat = '%.1f'; 
             app.MovingPercentileEditField.Position = [120 38 150 22];
             app.MovingPercentileEditField.Value = app.moving_percentile;
 
@@ -1196,47 +1208,45 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
 
             % Neuron Display Panel
             app.NeuronDisplayPanel = uipanel(app.UIFigure);
-            app.NeuronDisplayPanel.Title = 'Neuron Display & Export'; % Updated title
-            app.NeuronDisplayPanel.Position = [20 220 300 135]; % Increased height for new button
+            app.NeuronDisplayPanel.Title = 'Neuron Display & Export'; 
+            app.NeuronDisplayPanel.Position = [20 220 300 135]; 
             
             app.SelectNeuronLabel = uilabel(app.NeuronDisplayPanel);
             app.SelectNeuronLabel.HorizontalAlignment = 'right';
-            app.SelectNeuronLabel.Position = [10 90 85 22]; % Adjusted Y
+            app.SelectNeuronLabel.Position = [10 90 85 22]; 
             app.SelectNeuronLabel.Text = 'Select Neuron:';
             
             app.NeuronDropDown = uidropdown(app.NeuronDisplayPanel);
             app.NeuronDropDown.ValueChangedFcn = createCallbackFcn(app, @NeuronDropDownValueChanged, true);
-            app.NeuronDropDown.Position = [105 90 170 22]; % Adjusted Y
+            app.NeuronDropDown.Position = [105 90 170 22]; 
             
             app.PreviousNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
             app.PreviousNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @PreviousNeuronButtonPushed, true);
-            app.PreviousNeuronButton.Position = [10 60 85 22]; % Adjusted Y
+            app.PreviousNeuronButton.Position = [10 60 85 22]; 
             app.PreviousNeuronButton.Text = 'Previous';
             
             app.NextNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
             app.NextNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @NextNeuronButtonPushed, true);
-            app.NextNeuronButton.Position = [105 60 85 22]; % Adjusted Y
+            app.NextNeuronButton.Position = [105 60 85 22]; 
             app.NextNeuronButton.Text = 'Next';
 
-            % NEW: Export All Neurons Button
             app.ExportAllNeuronsButton = uibutton(app.NeuronDisplayPanel, 'push');
             app.ExportAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @ExportAllNeuronsButtonPushed, true);
-            app.ExportAllNeuronsButton.Position = [10 30 180 22]; % Positioned below Next/Prev
+            app.ExportAllNeuronsButton.Position = [10 30 180 22]; 
             app.ExportAllNeuronsButton.Text = 'Export All Neurons';
-
 
             % All Neurons Display Panel (for external plot settings)
             app.AllNeuronsDisplayPanel = uipanel(app.UIFigure);
             app.AllNeuronsDisplayPanel.Title = 'All Neurons Plot Settings (ΔF/F)';
-            app.AllNeuronsDisplayPanel.Position = [20 10 300 200]; % Adjusted Y
+            app.AllNeuronsDisplayPanel.Position = [20 10 300 200]; 
             
             app.DisplayAllNeuronsButton = uibutton(app.AllNeuronsDisplayPanel, 'push');
             app.DisplayAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @DisplayAllNeuronsButtonPushed, true);
-            app.DisplayAllNeuronsButton.Position = [10 155 200 22]; % Adjusted width
+            app.DisplayAllNeuronsButton.Position = [10 155 200 22]; 
             app.DisplayAllNeuronsButton.Text = 'Open/Update All Neurons Plot';
             
             app.ScalebarSignalLabel = uilabel(app.AllNeuronsDisplayPanel);
-            app.ScalebarSignalLabel.HorizontalAlignment = 'left'; % Changed to left for consistency
+            app.ScalebarSignalLabel.HorizontalAlignment = 'left'; 
             app.ScalebarSignalLabel.Position = [10 125 130 22];
             app.ScalebarSignalLabel.Text = 'Scalebar Signal Value:';
             app.ScalebarSignalEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
@@ -1245,13 +1255,13 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             
             app.PlotScaleBarTimeCheckBox = uicheckbox(app.AllNeuronsDisplayPanel);
             app.PlotScaleBarTimeCheckBox.Text = 'Plot Time Scalebar';
-            app.PlotScaleBarTimeCheckBox.Position = [10 95 140 22]; % Increased width
+            app.PlotScaleBarTimeCheckBox.Position = [10 95 140 22]; 
             app.PlotScaleBarTimeCheckBox.Value = app.plot_scale_bar_time;
             
             app.ScalebarTimeLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ScalebarTimeLabel.HorizontalAlignment = 'right';
-            app.ScalebarTimeLabel.Position = [130 95 80 22]; % Adjusted X
-            app.ScalebarTimeLabel.Text = 'Length (s):'; % More descriptive
+            app.ScalebarTimeLabel.Position = [130 95 80 22]; 
+            app.ScalebarTimeLabel.Text = 'Length (s):'; 
             app.ScalebarTimeEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
             app.ScalebarTimeEditField.Position = [220 95 50 22];
             app.ScalebarTimeEditField.Value = app.scalebar_time;
@@ -1282,7 +1292,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.ColorMapEditField.Value = app.color_map;
             app.ColorMapEditField.Placeholder = 'turbo, jet, or #RRGGBB';
 
-
             % UIAxes
             app.UIAxes = uiaxes(app.UIFigure);
             title(app.UIAxes, 'Signal')
@@ -1296,27 +1305,33 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.SignalTypeDropDown.Items = {'Raw Signal'};
             app.SignalTypeDropDown.Value = 'Raw Signal';
             app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
-            app.SignalTypeDropDown.Position = [360 710 120 22]; % Increased width for z-score
+            app.SignalTypeDropDown.Position = [360 710 120 22]; 
             app.SignalTypeDropDown.Enable = 'off';
 
             % Export Plot Button (for single plot in UIAxes)
             app.ExportPlotButton = uibutton(app.UIFigure, 'push');
             app.ExportPlotButton.ButtonPushedFcn = createCallbackFcn(app, @ExportPlotButtonPushed, true);
-            app.ExportPlotButton.Position = [490 710 100 22]; % Adjusted X
+            app.ExportPlotButton.Position = [490 710 100 22]; 
             app.ExportPlotButton.Text = 'Export This Plot';
 
             % Set Width Button
             app.SetWidthButton = uibutton(app.UIFigure, 'push');
             app.SetWidthButton.ButtonPushedFcn = createCallbackFcn(app, @SetWidthButtonPushed, true);
-            app.SetWidthButton.Position = [600 710 100 22]; % Adjusted X
+            app.SetWidthButton.Position = [600 710 100 22]; 
             app.SetWidthButton.Text = 'Set Axes Width';
 
             % Set Height Button
             app.SetHeightButton = uibutton(app.UIFigure, 'push');
             app.SetHeightButton.ButtonPushedFcn = createCallbackFcn(app, @SetHeightButtonPushed, true);
-            app.SetHeightButton.Position = [710 710 100 22]; % Adjusted X
+            app.SetHeightButton.Position = [710 710 100 22]; 
             app.SetHeightButton.Text = 'Set Axes Height';
 
+            % NEW: Set Plot Color Button
+            app.SetPlotColorButton = uibutton(app.UIFigure, 'push');
+            app.SetPlotColorButton.ButtonPushedFcn = createCallbackFcn(app, @SetPlotColorButtonPushed, true);
+            app.SetPlotColorButton.Position = [820 710 100 22]; % Positioned after "Set Height"
+            app.SetPlotColorButton.Text = 'Set Plot Color';
+            
             app.UIFigure.Visible = 'on';
         end
     end

@@ -1,90 +1,91 @@
 classdef CalciumDeltaFCaculator < matlab.apps.AppBase
-    
+
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure                 matlab.ui.Figure
-        FileOperationsPanel      matlab.ui.container.Panel
-        FramerateHzLabel         matlab.ui.control.Label
-        FramerateEditField       matlab.ui.control.NumericEditField
-        LoadDataButton           matlab.ui.control.Button
-        LoadedFileLabel          matlab.ui.control.Label
+        UIFigure matlab.ui.Figure
+        FileOperationsPanel matlab.ui.container.Panel
+        FramerateHzLabel matlab.ui.control.Label
+        FramerateEditField matlab.ui.control.NumericEditField
+        LoadDataButton matlab.ui.control.Button
+        LoadedFileLabel matlab.ui.control.Label
         DeltaFOverFCalculatePanel matlab.ui.container.Panel
-        CalculateZScoreCheckBox  matlab.ui.control.CheckBox
+        CalculateZScoreCheckBox matlab.ui.control.CheckBox
         BaselineMethodDropDownLabel matlab.ui.control.Label
-        BaselineMethodDropDown    matlab.ui.control.DropDown
+        BaselineMethodDropDown matlab.ui.control.DropDown
         PercentileEditFieldLabel matlab.ui.control.Label
-        PercentileEditField      matlab.ui.control.EditField
-        BaselineTimeLabel        matlab.ui.control.Label
-        BaselineTimeEditField    matlab.ui.control.EditField
-        PolynomialOrderLabel     matlab.ui.control.Label
+        PercentileEditField matlab.ui.control.EditField
+        BaselineTimeLabel matlab.ui.control.Label
+        BaselineTimeEditField matlab.ui.control.EditField
+        PolynomialOrderLabel matlab.ui.control.Label
         PolynomialOrderEditField matlab.ui.control.NumericEditField
-        MovingWindowLabel        matlab.ui.control.Label
-        MovingWindowEditField    matlab.ui.control.NumericEditField
-        MovingPercentileLabel    matlab.ui.control.Label
+        MovingWindowLabel matlab.ui.control.Label
+        MovingWindowEditField matlab.ui.control.NumericEditField
+        MovingPercentileLabel matlab.ui.control.Label
         MovingPercentileEditField matlab.ui.control.NumericEditField
-        RunAnalysisButton        matlab.ui.control.Button
-        NeuronDisplayPanel       matlab.ui.container.Panel
-        SelectNeuronLabel        matlab.ui.control.Label
-        NeuronDropDown           matlab.ui.control.DropDown
-        PreviousNeuronButton     matlab.ui.control.Button
-        NextNeuronButton         matlab.ui.control.Button
-        SaveResultsButton        matlab.ui.control.Button
-        AllNeuronsDisplayPanel   matlab.ui.container.Panel
-        ScalebarSignalLabel      matlab.ui.control.Label
-        ScalebarSignalEditField  matlab.ui.control.NumericEditField
+        RunAnalysisButton matlab.ui.control.Button
+        NeuronDisplayPanel matlab.ui.container.Panel
+        SelectNeuronLabel matlab.ui.control.Label
+        NeuronDropDown matlab.ui.control.DropDown
+        PreviousNeuronButton matlab.ui.control.Button
+        NextNeuronButton matlab.ui.control.Button
+        SaveResultsButton matlab.ui.control.Button
+        AllNeuronsDisplayPanel matlab.ui.container.Panel
+        ScalebarSignalLabel matlab.ui.control.Label
+        ScalebarSignalEditField matlab.ui.control.NumericEditField
         PlotScaleBarTimeCheckBox matlab.ui.control.CheckBox
-        ScalebarTimeLabel        matlab.ui.control.Label
-        ScalebarTimeEditField    matlab.ui.control.NumericEditField
-        SelectedROILabel         matlab.ui.control.Label
-        SelectedROIEditField     matlab.ui.control.EditField
-        ROIIntervalLabel         matlab.ui.control.Label
-        ROIIntervalEditField     matlab.ui.control.NumericEditField
-        ColorMapLabel            matlab.ui.control.Label
-        ColorMapEditField        matlab.ui.control.EditField
-        DisplayAllNeuronsButton  matlab.ui.control.Button
-        UIAxes                   matlab.ui.control.UIAxes
-        SignalTypeDropDown       matlab.ui.control.DropDown
-        ExportPlotButton         matlab.ui.control.Button
-        SetWidthButton           matlab.ui.control.Button
-        SetHeightButton          matlab.ui.control.Button
+        ScalebarTimeLabel matlab.ui.control.Label
+        ScalebarTimeEditField matlab.ui.control.NumericEditField
+        SelectedROILabel matlab.ui.control.Label
+        SelectedROIEditField matlab.ui.control.EditField
+        ROIIntervalLabel matlab.ui.control.Label
+        ROIIntervalEditField matlab.ui.control.NumericEditField
+        ColorMapLabel matlab.ui.control.Label
+        ColorMapEditField matlab.ui.control.EditField
+        DisplayAllNeuronsButton matlab.ui.control.Button
+        UIAxes matlab.ui.control.UIAxes
+        SignalTypeDropDown matlab.ui.control.DropDown
+        ExportPlotButton matlab.ui.control.Button
+        SetWidthButton matlab.ui.control.Button
+        SetHeightButton matlab.ui.control.Button
+        ExportAllNeuronsButton matlab.ui.control.Button % NEW: Export All Neurons Button
     end
-    
+
     % Properties that store app data
     properties (Access = public)
-        selectedFolder = ''        % Selected folder for data
-        fluo_data                % Loaded fluorescence data (rows=neurons, cols=frames)
-        dff_data                 % Calculated ΔF/F data
-        zscore_dff_data          % Calculated z-score ΔF/F data
-        time_vector              % Time vector for plotting
-        framerate = 30           % Default framerate (Hz)
+        selectedFolder = '' % Selected folder for data
+        fluo_data % Loaded fluorescence data (rows=neurons, cols=frames)
+        dff_data % Calculated ΔF/F data
+        zscore_dff_data % Calculated z-score ΔF/F data
+        time_vector % Time vector for plotting
+        framerate = 30 % Default framerate (Hz)
         calculate_zscore = false % Flag to calculate z-score ΔF/F
         baseline_method = 'Percentile' % Default baseline method
         percentile_value = '10:20' % Default percentile
-        baseline_time = 'all'    % Default baseline time range
-        polynomial_order = 3      % Default polynomial order
-        moving_window_sec = 20    % Default moving window size in seconds
-        moving_percentile = 20    % Default moving percentile value
-        current_neuron_id = 1     % ID of the currently displayed neuron
-        display_all = false       % Flag to display all neurons
-        results                  % Structure to store analysis results
-        display_figure_handles   % Handle for the all neurons figure
-        scalebar_signal = 1      % Default scalebar signal value
+        baseline_time = 'all' % Default baseline time range
+        polynomial_order = 3 % Default polynomial order
+        moving_window_sec = 20 % Default moving window size in seconds
+        moving_percentile = 20 % Default moving percentile value
+        current_neuron_id = 1 % ID of the currently displayed neuron
+        display_all = false % Flag to display all neurons
+        results % Structure to store analysis results
+        display_figure_handles % Handle for the all neurons figure
+        scalebar_signal = 1 % Default scalebar signal value
         plot_scale_bar_time = true % Default plot scale bar time
-        scalebar_time = 10       % Default scalebar time length
-        selected_roi_str = ''    % Default selected ROI string
-        roi_interval = 1         % Default ROI interval
-        color_map = 'turbo'      % Default color map
+        scalebar_time = 10 % Default scalebar time length
+        selected_roi_str = '' % Default selected ROI string
+        roi_interval = 1 % Default ROI interval
+        color_map = 'turbo' % Default color map
         signal_type = 'Raw Signal' % Current signal type to display
-        loaded_file_name = ''    % Name of the loaded file
+        loaded_file_name = '' % Name of the loaded file
     end
-    
+
     methods (Access = private)
-        
+
         % Update plot display
         function UpdatePlot(app)
             cla(app.UIAxes);
             hold(app.UIAxes, 'on');
-            
+
             if isempty(app.fluo_data)
                 title(app.UIAxes, 'No data to plot.');
                 xlabel(app.UIAxes, 'Time (s)');
@@ -92,53 +93,67 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 return;
             end
             
+            % Ensure time_vector is up-to-date if framerate changed
+            if ~isempty(app.fluo_data) && (length(app.time_vector) ~= size(app.fluo_data,2) || abs(app.time_vector(2) - 1/app.framerate) > 1e-9 ) % Check if recalc needed
+                [~, num_frames] = size(app.fluo_data);
+                 app.time_vector = (0:num_frames-1) / app.framerate;
+            end
+
+
             ylabel_str = 'Raw Signal';
-            if strcmp(app.signal_type, 'ΔF/F')
-                ylabel_str = 'ΔF/F';
-                if isempty(app.dff_data)
-                    title(app.UIAxes, 'No ΔF/F data to plot.');
-                    xlabel(app.UIAxes, 'Time (s)');
-                    ylabel(app.UIAxes, 'ΔF/F');
+            current_data_to_plot = [];
+
+            switch app.signal_type
+                case 'Raw Signal'
+                    ylabel_str = 'Raw Signal';
+                    current_data_to_plot = app.fluo_data;
+                case 'ΔF/F'
+                    ylabel_str = 'ΔF/F';
+                    if isempty(app.dff_data)
+                        title(app.UIAxes, 'No ΔF/F data. Please run analysis.');
+                        xlabel(app.UIAxes, 'Time (s)');
+                        ylabel(app.UIAxes, ylabel_str);
+                        return;
+                    end
+                    current_data_to_plot = app.dff_data;
+                case 'z-score ΔF/F'
+                    ylabel_str = 'z-score ΔF/F';
+                    if isempty(app.zscore_dff_data)
+                        title(app.UIAxes, 'No z-score ΔF/F data. Please run analysis or enable z-score calculation.');
+                        xlabel(app.UIAxes, 'Time (s)');
+                        ylabel(app.UIAxes, ylabel_str);
+                        return;
+                    end
+                    current_data_to_plot = app.zscore_dff_data;
+                otherwise
+                    title(app.UIAxes, 'Unknown signal type selected.');
                     return;
-                end
-            elseif strcmp(app.signal_type, 'z-score ΔF/F')
-                ylabel_str = 'z-score ΔF/F';
-                if isempty(app.zscore_dff_data)
-                    title(app.UIAxes, 'No z-score ΔF/F data to plot.');
-                    xlabel(app.UIAxes, 'Time (s)');
-                    ylabel(app.UIAxes, 'z-score ΔF/F');
-                    return;
-                end
             end
             
+            if isempty(current_data_to_plot) && ~strcmp(app.signal_type, 'Raw Signal') % For dF/F or Z-score if data is missing
+                 title(app.UIAxes, sprintf('%s data not available. Run analysis.', app.signal_type));
+                 xlabel(app.UIAxes, 'Time (s)');
+                 ylabel(app.UIAxes, ylabel_str);
+                 return;
+            end
+
+
             if app.display_all
-                num_neurons = size(app.fluo_data, 1);
+                num_neurons = size(current_data_to_plot, 1);
                 for n = 1:num_neurons
-                    if strcmp(app.signal_type, 'Raw Signal')
-                        plot(app.UIAxes, app.time_vector, app.fluo_data(n, :), ...
-                            'DisplayName', sprintf('Neuron %d', n));
-                    elseif strcmp(app.signal_type, 'ΔF/F')
-                        plot(app.UIAxes, app.time_vector, app.dff_data(n, :), ...
-                            'DisplayName', sprintf('Neuron %d', n));
-                    else
-                        plot(app.UIAxes, app.time_vector, app.zscore_dff_data(n, :), ...
-                            'DisplayName', sprintf('Neuron %d', n));
-                    end
+                    plot(app.UIAxes, app.time_vector, current_data_to_plot(n, :), ...
+                        'DisplayName', sprintf('Neuron %d', n));
                 end
                 title(app.UIAxes, sprintf('%s for All %d Neurons', app.signal_type, num_neurons));
             else
                 neuron_id = app.current_neuron_id;
-                if neuron_id > size(app.fluo_data, 1)
-                    title(app.UIAxes, 'Invalid neuron selected.');
+                if neuron_id == 0 || neuron_id > size(current_data_to_plot, 1)
+                    title(app.UIAxes, 'Invalid or no neuron selected.');
+                    xlabel(app.UIAxes, 'Time (s)');
+                    ylabel(app.UIAxes, ylabel_str);
                     return;
                 end
-                if strcmp(app.signal_type, 'Raw Signal')
-                    trace = app.fluo_data(neuron_id, :);
-                elseif strcmp(app.signal_type, 'ΔF/F')
-                    trace = app.dff_data(neuron_id, :);
-                else
-                    trace = app.zscore_dff_data(neuron_id, :);
-                end
+                trace = current_data_to_plot(neuron_id, :);
                 plot(app.UIAxes, app.time_vector, trace, 'b-', 'LineWidth', 1.5, ...
                     'DisplayName', sprintf('Neuron %d', neuron_id));
                 title(app.UIAxes, sprintf('%s for Neuron %d', app.signal_type, neuron_id));
@@ -147,40 +162,60 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             ylabel(app.UIAxes, ylabel_str);
             grid(app.UIAxes, 'on');
             if app.display_all
-                legend(app.UIAxes, 'show');
+                legend(app.UIAxes, 'show', 'Location', 'eastoutside');
             end
             hold(app.UIAxes, 'off');
+            xlim(app.UIAxes, [app.time_vector(1), app.time_vector(end)]); % Ensure x-axis limits are correct
         end
-        
+
         % Export plot to external figure
         function ExportPlotButtonPushed(app, event)
-            if isempty(app.fluo_data)
-                uialert(app.UIFigure, 'No data to export.', 'Export Error');
+            if isempty(app.fluo_data) || app.current_neuron_id == 0
+                uialert(app.UIFigure, 'No data or neuron selected to export.', 'Export Error');
                 return;
             end
-            
+
             fig = figure('Name', sprintf('%s - Neuron %d', app.signal_type, app.current_neuron_id));
             ax = axes(fig);
             
-            ylabel_str = 'Raw Signal';
-            if strcmp(app.signal_type, 'ΔF/F')
-                ylabel_str = 'ΔF/F';
-                trace = app.dff_data(app.current_neuron_id, :);
-            elseif strcmp(app.signal_type, 'z-score ΔF/F')
-                ylabel_str = 'z-score ΔF/F';
-                trace = app.zscore_dff_data(app.current_neuron_id, :);
-            else
-                trace = app.fluo_data(app.current_neuron_id, :);
+            trace = [];
+            ylabel_str = app.signal_type;
+
+            switch app.signal_type
+                case 'Raw Signal'
+                    trace = app.fluo_data(app.current_neuron_id, :);
+                case 'ΔF/F'
+                    if isempty(app.dff_data)
+                        uialert(app.UIFigure, 'ΔF/F data not available for export.', 'Export Error');
+                        close(fig); return;
+                    end
+                    trace = app.dff_data(app.current_neuron_id, :);
+                case 'z-score ΔF/F'
+                     if isempty(app.zscore_dff_data)
+                        uialert(app.UIFigure, 'z-score ΔF/F data not available for export.', 'Export Error');
+                        close(fig); return;
+                    end
+                    trace = app.zscore_dff_data(app.current_neuron_id, :);
+                otherwise
+                    uialert(app.UIFigure, 'Unknown signal type selected for export.', 'Export Error');
+                    close(fig); return;
             end
             
+            if isempty(trace)
+                 uialert(app.UIFigure, 'Selected trace data is empty.', 'Export Error');
+                 close(fig); return;
+            end
+
             plot(ax, app.time_vector, trace, 'b-', 'LineWidth', 1.5);
             title(ax, sprintf('%s for Neuron %d', app.signal_type, app.current_neuron_id));
             xlabel(ax, 'Time (s)');
             ylabel(ax, ylabel_str);
             grid(ax, 'on');
+            xlim(ax, [app.time_vector(1), app.time_vector(end)]);
+
 
         end
-        
+
         % Set axes width
         function SetWidthButtonPushed(app, event)
             prompt = {'Enter new width for UIAxes (pixels):'};
@@ -188,7 +223,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             dims = [1 50];
             definput = {num2str(app.UIAxes.Position(3))};
             answer = inputdlg(prompt, dlgtitle, dims, definput);
-            
+
             if ~isempty(answer)
                 new_width = str2double(answer{1});
                 if isnan(new_width) || new_width < 100
@@ -200,7 +235,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     'Width Updated', 'Icon', 'success');
             end
         end
-        
+
         % Set axes height
         function SetHeightButtonPushed(app, event)
             prompt = {'Enter new height for UIAxes (pixels):'};
@@ -208,7 +243,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             dims = [1 50];
             definput = {num2str(app.UIAxes.Position(4))};
             answer = inputdlg(prompt, dlgtitle, dims, definput);
-            
+
             if ~isempty(answer)
                 new_height = str2double(answer{1});
                 if isnan(new_height) || new_height < 100
@@ -220,30 +255,53 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     'Height Updated', 'Icon', 'success');
             end
         end
-        
+
         % Calculate baseline F0
         function F0 = CalculateBaseline(app, fluo_trace)
             if ~strcmpi(app.baseline_time, 'all')
                 try
-                    time_range = str2num(app.baseline_time);
-                    if isempty(time_range)
-                        error('Invalid time range format. Use "all" or range like "1:30".');
+                    time_range_str = app.baseline_time;
+                    if contains(time_range_str, ':') % Format like "1:30" or "10.5:20.0"
+                        parts = strsplit(time_range_str, ':');
+                        if length(parts) ~= 2
+                             error('Invalid time range format. Use "all" or range like "1:30" or "10.5:20.0".');
+                        end
+                        time_range = [str2double(parts{1}), str2double(parts{2})];
+                        if any(isnan(time_range)) || time_range(1) < 0 || time_range(2) < time_range(1)
+                             error('Invalid numeric values in time range or end time < start time.');
+                        end
+                        start_frame = max(1, round(time_range(1) * app.framerate) + 1); % +1 for 1-based indexing
+                        end_frame = min(length(fluo_trace), round(time_range(2) * app.framerate));
+
+                    else % Format like "30" (interpreted as 0 to 30s)
+                        single_time = str2double(time_range_str);
+                        if isnan(single_time) || single_time < 0
+                            error('Invalid single time value for baseline. Must be non-negative.');
+                        end
+                        start_frame = 1;
+                        end_frame = min(length(fluo_trace), round(single_time * app.framerate));
                     end
-                    start_frame = max(1, round(time_range(1) * app.framerate) + 1);
-                    if length(time_range) > 1
-                        end_frame = min(length(fluo_trace), round(time_range(end) * app.framerate));
+                    if start_frame > end_frame % Handle cases where range is too small or outside data
+                        warning('Baseline time range resulted in empty or invalid frame selection. Using full trace for this neuron.');
+                        baseline_trace = fluo_trace;
                     else
-                        end_frame = min(length(fluo_trace), round(time_range * app.framerate));
+                        baseline_trace = fluo_trace(start_frame:end_frame);
                     end
-                    baseline_trace = fluo_trace(start_frame:end_frame);
-                catch
-                    warning('Invalid time range specified. Using all data.');
+
+                catch ME
+                    warning('Invalid time range specified (%s): %s. Using all data for this neuron.', app.baseline_time, ME.message);
                     baseline_trace = fluo_trace;
                 end
             else
                 baseline_trace = fluo_trace;
             end
             
+            if isempty(baseline_trace) % Fallback if selection somehow results in empty
+                warning('Baseline trace is empty after time selection. Using full trace for this neuron.');
+                baseline_trace = fluo_trace;
+            end
+
+
             switch app.baseline_method
                 case 'Percentile'
                     perc_str = app.percentile_value;
@@ -266,44 +324,254 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     F0 = polyval(p, t)';
                 case 'Moving Percentile'
                     w_size = round(app.moving_window_sec * app.framerate);
+                    if w_size < 1, w_size = 1; end % Ensure window size is at least 1
                     q_value = app.moving_percentile;
                     x_w = floor(w_size/2);
-                    F0 = arrayfun(@(x) prctile(fluo_trace(max(1,x-x_w):min(length(fluo_trace),x+x_w)), q_value), ...
-                        1:length(fluo_trace));
+                    F0 = zeros(1, length(fluo_trace)); % Preallocate
+                    for i = 1:length(fluo_trace)
+                        idx_start = max(1, i - x_w);
+                        idx_end = min(length(fluo_trace), i + x_w);
+                        F0(i) = prctile(fluo_trace(idx_start:idx_end), q_value);
+                    end
                 otherwise
                     error('Unknown baseline method.');
             end
+            if any(F0 <= 0) % Prevent division by zero or negative F0
+                warning('Baseline (F0) calculation resulted in non-positive values. Clamping to a small positive value to avoid errors.');
+                F0(F0 <= 0) = 1e-6; % A small positive number
+            end
         end
-        
+
         % Update all neurons plot
         function UpdateAllNeuronsPlot(app)
-            if isempty(app.dff_data)
-                uialert(app.UIFigure, 'No ΔF/F data to display.', 'Display Error');
+            if isempty(app.fluo_data) % Check raw data first
+                uialert(app.UIFigure, 'No data loaded to display.', 'Display Error');
                 return;
             end
+
+            plot_signal_data = [];
+            current_signal_type_for_plot = app.signal_type; % Use the app's current signal type
+
+            switch current_signal_type_for_plot
+                case 'Raw Signal'
+                    plot_signal_data = app.fluo_data;
+                case 'ΔF/F'
+                    if isempty(app.dff_data)
+                        uialert(app.UIFigure, 'ΔF/F data not available. Please run analysis.', 'Display Error');
+                        return;
+                    end
+                    plot_signal_data = app.dff_data;
+                case 'z-score ΔF/F'
+                    if isempty(app.zscore_dff_data)
+                        uialert(app.UIFigure, 'Z-score ΔF/F data not available. Please run analysis with z-score enabled.', 'Display Error');
+                        return;
+                    end
+                    plot_signal_data = app.zscore_dff_data;
+                otherwise
+                    uialert(app.UIFigure, 'Invalid signal type for "All Neurons Plot".', 'Display Error');
+                    return;
+            end
+            
+            if isempty(plot_signal_data)
+                 uialert(app.UIFigure, ['No data available for signal type: ' current_signal_type_for_plot], 'Display Error');
+                 return;
+            end
+
             if ~isfield(app, 'display_figure_handles') || isempty(app.display_figure_handles) || ~isvalid(app.display_figure_handles)
-                app.display_figure_handles = figure('Name', 'All Neurons ΔF/F');
+                app.display_figure_handles = figure('Name', ['All Neurons - ' current_signal_type_for_plot]);
+            else
+                figure(app.display_figure_handles); % Bring to front
+                clf(app.display_figure_handles); % Clear previous content
+                app.display_figure_handles.Name = ['All Neurons - ' current_signal_type_for_plot];
             end
-            plot_signal_data = app.dff_data;
-            if strcmp(app.signal_type, 'z-score ΔF/F')
-                plot_signal_data = app.zscore_dff_data;
+            
+            % Call external plot_signal function (assuming it exists and is on path)
+            % Ensure plot.plot_signal can handle the 'fig' argument correctly
+            % and that it uses app.time_vector or recalculates based on framerate.
+            try
+                plot.plot_signal(plot_signal_data, ...
+                    'frame_rate', app.framerate, ...
+                    'time_vector', app.time_vector, ... % Pass the time vector
+                    'color_map', app.color_map, ...
+                    'signal_type', current_signal_type_for_plot, ...
+                    'fig', app.display_figure_handles, ...
+                    'scalebar_signal', app.scalebar_signal, ...
+                    'plot_scale_bar_time', app.plot_scale_bar_time, ...
+                    'scalebar_time', app.scalebar_time, ...
+                    'selected_roi_str', app.selected_roi_str, ...
+                    'roi_interval', app.roi_interval);
+            catch ME_plot_signal
+                uialert(app.UIFigure, ['Error calling plot_signal: ' ME_plot_signal.message], 'Plotting Error');
+                disp(ME_plot_signal.getReport);
             end
-            plot.plot_signal(plot_signal_data, ...
-                'frame_rate', app.framerate, ...
-                'color_map', app.color_map, ...
-                'signal_type', app.signal_type, ...
-                'fig', app.display_figure_handles, ...
-                'scalebar_signal', app.scalebar_signal, ...
-                'plot_scale_bar_time', app.plot_scale_bar_time, ...
-                'scalebar_time', app.scalebar_time, ...
-                'selected_roi_str', app.selected_roi_str, ...
-                'roi_interval', app.roi_interval);
         end
+        
+        % NEW: Callback for FramerateEditField value changed
+        function FramerateEditFieldValueChanged(app, event)
+            new_framerate = app.FramerateEditField.Value;
+            if isnan(new_framerate) || new_framerate <= 0
+                uialert(app.UIFigure, 'Framerate must be a positive number.', 'Input Error');
+                app.FramerateEditField.Value = app.framerate; % Revert to old value
+                return;
+            end
+            
+            app.framerate = new_framerate; % Update the stored framerate
+            
+            if ~isempty(app.fluo_data)
+                % Recalculate time vector
+                [~, num_frames] = size(app.fluo_data);
+                app.time_vector = (0:num_frames-1) / app.framerate;
+                
+                % Update the plot
+                UpdatePlot(app);
+                
+                % Update all neurons plot if it's open and valid
+                if isfield(app, 'display_figure_handles') && ~isempty(app.display_figure_handles) && isvalid(app.display_figure_handles)
+                    if app.display_all % Only if it was meant to be displaying all neurons
+                         UpdateAllNeuronsPlot(app); % This will replot with new framerate/time_vector
+                    end
+                end
+            else
+            end
+        end
+
+        % NEW: Callback for Export All Neurons button
+        function ExportAllNeuronsButtonPushed(app, event)
+            if isempty(app.fluo_data)
+                uialert(app.UIFigure, 'No data loaded to export.', 'Export Error');
+                return;
+            end
+
+            selected_signal_type = app.SignalTypeDropDown.Value;
+            data_to_export = [];
+            file_suffix_type = '';
+
+            switch selected_signal_type
+                case 'Raw Signal'
+                    data_to_export = app.fluo_data;
+                    file_suffix_type = 'Raw_Signal';
+                case 'ΔF/F'
+                    if isempty(app.dff_data)
+                        uialert(app.UIFigure, 'ΔF/F data not available. Please run analysis first.', 'Export Error');
+                        return;
+                    end
+                    data_to_export = app.dff_data;
+                    file_suffix_type = 'DeltaF_F';
+                case 'z-score ΔF/F'
+                    if isempty(app.zscore_dff_data)
+                        uialert(app.UIFigure, 'z-score ΔF/F data not available. Please run analysis with z-score enabled.', 'Export Error');
+                        return;
+                    end
+                    data_to_export = app.zscore_dff_data;
+                    file_suffix_type = 'ZScore_DeltaF_F';
+                otherwise
+                    uialert(app.UIFigure, 'Invalid signal type selected for export.', 'Export Error');
+                    return;
+            end
+
+            if isempty(data_to_export)
+                uialert(app.UIFigure, ['No data found for the selected signal type: ' selected_signal_type], 'Export Error');
+                return;
+            end
+
+            [~, baseNameWithoutExt, ~] = fileparts(app.loaded_file_name);
+            if isempty(baseNameWithoutExt)
+                baseNameWithoutExt = 'ExportedData'; % Fallback if loaded_file_name is weird
+            end
+            exportDir = fullfile(app.selectedFolder, [baseNameWithoutExt '_ExportedPlots']);
+            if ~exist(exportDir, 'dir')
+                try
+                    mkdir(exportDir);
+                catch ME_mkdir
+                    uialert(app.UIFigure, ['Error creating export directory: ' ME_mkdir.message], 'Directory Error');
+                    return;
+                end
+            end
+
+            num_neurons = size(data_to_export, 1);
+            progDlg = uiprogressdlg(app.UIFigure, 'Title', 'Exporting All Neuron Plots', ...
+                                   'Message', sprintf('Starting export for %d neurons...', num_neurons), ...
+                                   'Cancelable', 'on', 'Indeterminate', 'off');
+            cleanupProgDlg = onCleanup(@() delete(progDlg)); % Ensure dialog closes
+
+            % Get UIAxes dimensions for exported figures
+            % Ensure UIAxes has valid position data
+            if isempty(app.UIAxes.Position) || any(app.UIAxes.Position(3:4) <=0)
+                uialert(app.UIFigure, 'UIAxes dimensions are invalid. Cannot set export figure size.', 'Export Error');
+                return;
+            end
+            export_fig_width = app.UIAxes.Position(3);
+            export_fig_height = app.UIAxes.Position(4);
+            
+            if export_fig_width < 50 || export_fig_height < 50 % Minimum sensible size
+                warning('UIAxes dimensions are very small. Exported figures might be tiny. Using default 600x400.');
+                export_fig_width = 600;
+                export_fig_height = 400;
+            end
+
+
+            for n = 1:num_neurons
+                if progDlg.CancelRequested
+                    uialert(app.UIFigure, 'Export cancelled by user.', 'Export Cancelled');
+                    return;
+                end
+                progDlg.Message = sprintf('Exporting Neuron %d/%d (%s)...', n, num_neurons, selected_signal_type);
+                progDlg.Value = n / num_neurons;
+                drawnow; % Update dialog
+
+                trace_data = data_to_export(n, :);
+                
+                fig_export = []; % Initialize for catch block
+                try
+                    fig_export = figure('Visible', 'off', ...
+                                      'Units', 'pixels', ...
+                                      'Position', [100, 100, export_fig_width, export_fig_height]); % Use UIAxes dimensions
+                    ax_export = axes(fig_export);
+
+                    plot(ax_export, app.time_vector, trace_data, 'b-', 'LineWidth', 1); % Thinner line for potentially many plots
+                    title(ax_export, sprintf('%s - Neuron %d', selected_signal_type, n), 'Interpreter', 'none');
+                    xlabel(ax_export, 'Time (s)');
+                    ylabel(ax_export, strrep(selected_signal_type, 'ΔF/F', 'dF/F')); % ylabel_str was file_suffix_type
+                    grid(ax_export, 'on');
+                    xlim(ax_export, [app.time_vector(1), app.time_vector(end)]);
+
+                    baseFigName = sprintf('%s_Neuron%d_%s', baseNameWithoutExt, n, file_suffix_type);
+                    figFilePath = fullfile(exportDir, [baseFigName '.fig']);
+                    pngFilePath = fullfile(exportDir, [baseFigName '.png']);
+
+                    savefig(fig_export, figFilePath);
+                    exportgraphics(ax_export, pngFilePath, 'Resolution', 150); % Slightly lower res for faster batch export
+
+                    close(fig_export);
+                catch ME_export_neuron
+                    if isvalid(fig_export)
+                        close(fig_export);
+                    end
+                    warning('Error exporting neuron %d: %s', n, ME_export_neuron.message);
+                    % Optionally, ask user if they want to continue
+                    choice = uiconfirm(app.UIFigure, ...
+                        sprintf('Error exporting neuron %d: %s\n\nDo you want to continue with other neurons?', n, ME_export_neuron.message), ...
+                        'Export Error', 'Options', {'Continue', 'Cancel All'}, 'DefaultOption', 'Continue');
+                    if strcmp(choice, 'Cancel All')
+                        uialert(app.UIFigure, 'Export cancelled due to error.', 'Export Cancelled');
+                        return;
+                    end
+                end
+            end
+            
+            progDlg.Value = 1; progDlg.Message = 'Export complete!';
+            pause(0.5); % Allow dialog to show complete message
+            
+            uialert(app.UIFigure, sprintf('All neuron plots exported successfully to:\n%s', exportDir), ...
+                    'Export Complete', 'Icon', 'success');
+        end
+
+
     end
-    
+
     % Callbacks that handle component events
     methods (Access = private)
-        
+
         % Startup function
         function startupFcn(app)
             assignin('base', 'app', app);
@@ -317,6 +585,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.NeuronDropDown.Value = 'N/A';
             app.SignalTypeDropDown.Items = {'Raw Signal'};
             app.SignalTypeDropDown.Enable = 'off';
+            app.ExportAllNeuronsButton.Enable = 'off'; % NEW: Disable initially
             title(app.UIAxes, 'Load Data to Begin');
             app.FramerateEditField.Value = app.framerate;
             app.CalculateZScoreCheckBox.Value = app.calculate_zscore;
@@ -333,11 +602,14 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.ROIIntervalEditField.Value = app.roi_interval;
             app.ColorMapEditField.Value = app.color_map;
             app.LoadedFileLabel.Text = 'No file loaded';
+            
+            % Initialize visibility of baseline parameter fields
+            BaselineMethodDropDownValueChanged(app, []); % Call to set initial visibility
         end
-        
+
         % Load data button pushed
         function LoadDataButtonPushed(app, event)
-            f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','');
+            f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','','Visible','off'); % Keep dummy invisible
             [fileName, filePath] = uigetfile({'*.mat';'*.xlsx;*.xls'}, 'Select Data File');
             delete(f_dummy);
             if isequal(fileName, 0) || isequal(filePath, 0)
@@ -349,7 +621,16 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.LoadedFileLabel.Text = sprintf('%s', fileName);
             fullPath = fullfile(filePath, fileName);
             [~, ~, ext] = fileparts(fileName);
+            
+            % Use the current value from the FramerateEditField when loading data
             app.framerate = app.FramerateEditField.Value;
+            if isnan(app.framerate) || app.framerate <= 0
+                 uialert(app.UIFigure, 'Invalid framerate. Please set a positive value.', 'Framerate Error');
+                 app.FramerateEditField.Value = 30; % Reset to a default
+                 app.framerate = 30;
+                 return; % Or allow loading with default and warn
+            end
+
             try
                 if strcmpi(ext, '.mat')
                     dataLoaded = load(fullPath);
@@ -360,11 +641,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     if length(varNames) == 1
                         app.fluo_data = dataLoaded.(varNames{1});
                     else
-                        f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','');
+                        f_dummy_list = figure('Position', [-100 -100 0 0],'CloseRequestFcn','','Visible','off');
                         [indx, tf] = listdlg('PromptString', {'Select fluorescence variable: (rows=neurons, cols=frames)'}, ...
                             'SelectionMode', 'single', 'ListString', varNames, ...
                             'Name', 'Select Variable', 'OKString', 'Select');
-                        delete(f_dummy);
+                        delete(f_dummy_list);
                         if tf
                             app.fluo_data = dataLoaded.(varNames{indx});
                         else
@@ -379,11 +660,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     if length(sheetNames) == 1
                         app.fluo_data = readmatrix(fullPath, 'Sheet', sheetNames{1});
                     else
-                        f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','');
+                        f_dummy_list = figure('Position', [-100 -100 0 0],'CloseRequestFcn','','Visible','off');
                         [indx, tf] = listdlg('PromptString', {'Select sheet: (rows=neurons, cols=frames)'}, ...
                             'SelectionMode', 'single', 'ListString', sheetNames, ...
                             'Name', 'Select Sheet', 'OKString', 'Select');
-                        delete(f_dummy);
+                        delete(f_dummy_list);
                         if tf
                             app.fluo_data = readmatrix(fullPath, 'Sheet', sheetNames{indx});
                         else
@@ -401,32 +682,57 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 app.time_vector = (0:num_frames-1) / app.framerate;
                 app.dff_data = [];
                 app.zscore_dff_data = [];
+                app.results = []; % Clear previous results
+
                 app.RunAnalysisButton.Enable = 'on';
                 app.NeuronDropDown.Enable = 'on';
                 app.PreviousNeuronButton.Enable = 'on';
                 app.NextNeuronButton.Enable = 'on';
                 app.DisplayAllNeuronsButton.Enable = 'on';
-                app.NeuronDropDown.Items = arrayfun(@(x) sprintf('Neuron %d', x), 1:num_neurons, 'UniformOutput', false);
-                app.NeuronDropDown.Value = 'Neuron 1';
-                app.current_neuron_id = 1;
+                app.ExportAllNeuronsButton.Enable = 'on'; % NEW: Enable button
+                
+                neuronItems = arrayfun(@(x) sprintf('Neuron %d', x), 1:num_neurons, 'UniformOutput', false);
+                 if isempty(neuronItems) % Should not happen if fluo_data is valid matrix
+                    app.NeuronDropDown.Items = {'N/A'};
+                    app.NeuronDropDown.Value = 'N/A';
+                    app.current_neuron_id = 0;
+                 else
+                    app.NeuronDropDown.Items = neuronItems;
+                    app.NeuronDropDown.Value = neuronItems{1}; % Select first neuron
+                    app.current_neuron_id = 1;
+                 end
+
                 app.signal_type = 'Raw Signal';
-                app.SignalTypeDropDown.Items = {'Raw Signal'};
+                app.SignalTypeDropDown.Items = {'Raw Signal'}; % Reset available types
                 app.SignalTypeDropDown.Value = 'Raw Signal';
                 app.SignalTypeDropDown.Enable = 'on';
+                app.SaveResultsButton.Enable = 'off'; % Only enable after analysis
+
                 UpdatePlot(app);
-                uialert(app.UIFigure, sprintf('Data loaded: %d neurons, %d frames.', num_neurons, num_frames), ...
+                uialert(app.UIFigure, sprintf('Data loaded: %d neurons, %d frames at %.2f Hz.', num_neurons, num_frames, app.framerate), ...
                     'Load Success', 'Icon', 'success');
             catch ME
                 uialert(app.UIFigure, ['Error loading data: ' ME.message], 'Load Error');
+                disp(ME.getReport); % For debugging
                 app.fluo_data = [];
                 app.dff_data = [];
                 app.zscore_dff_data = [];
                 app.RunAnalysisButton.Enable = 'off';
                 app.SignalTypeDropDown.Enable = 'off';
+                app.NeuronDropDown.Enable = 'off';
+                app.PreviousNeuronButton.Enable = 'off';
+                app.NextNeuronButton.Enable = 'off';
+                app.DisplayAllNeuronsButton.Enable = 'off';
+                app.ExportAllNeuronsButton.Enable = 'off'; % NEW: Disable on error
+                app.SaveResultsButton.Enable = 'off';
                 app.LoadedFileLabel.Text = 'No file loaded';
+                app.NeuronDropDown.Items = {'N/A'};
+                app.NeuronDropDown.Value = 'N/A';
+                app.current_neuron_id = 0;
+                UpdatePlot(app); % Clear plot
             end
         end
-        
+
         % Run analysis button pushed
         function RunAnalysisButtonPushed(app, event)
             if isempty(app.fluo_data)
@@ -440,21 +746,23 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.polynomial_order = app.PolynomialOrderEditField.Value;
             app.moving_window_sec = app.MovingWindowEditField.Value;
             app.moving_percentile = app.MovingPercentileEditField.Value;
-            
+
             try
                 if app.framerate <= 0
                     error('Framerate must be positive.');
                 end
                 if ~strcmpi(app.baseline_time, 'all')
-                    time_range = str2num(app.baseline_time);
-                    if isempty(time_range) || any(time_range < 0)
-                        error('Invalid baseline time range. Use "all" or range like "1:30".');
+                    % Basic validation for baseline_time format (more in CalculateBaseline)
+                    if ~matches(app.baseline_time, digitsPattern | (digitsPattern + ":" + digitsPattern))
+                        if ~matches(app.baseline_time, textBoundary + (("0"|"."|[digitsPattern])+".*") + textBoundary) % allow decimals
+                             % error('Invalid baseline time format. Use "all", "1:30", "10.5:20", or "30".');
+                        end
                     end
                 end
                 if strcmp(app.baseline_method, 'Percentile')
                     perc_str = app.percentile_value;
                     if contains(perc_str, ':')
-                        range = str2num(perc_str);
+                        range = str2num(perc_str); %#ok<ST2NM>
                         if length(range) < 2 || any(isnan(range)) || any(range < 0) || any(range > 100)
                             error('Invalid percentile range. Use format "10:20" or single value like "20".');
                         end
@@ -480,28 +788,38 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, ['Parameter error: ' ME.message], 'Parameter Error');
                 return;
             end
-            
+
             progDlg = uiprogressdlg(app.UIFigure, 'Title', 'Computing Signals', ...
-                'Message', 'Initializing...', 'Cancelable', 'on');
+                'Message', 'Initializing...', 'Cancelable', 'on', 'Indeterminate', 'off');
             [num_neurons, num_frames] = size(app.fluo_data);
             app.dff_data = zeros(num_neurons, num_frames);
             if app.calculate_zscore
                 app.zscore_dff_data = zeros(num_neurons, num_frames);
             else
-                app.zscore_dff_data = [];
+                app.zscore_dff_data = []; % Clear it if not calculated
             end
             app.results = struct('neuron_id', {}, 'dff_trace', {}, 'zscore_dff_trace', {});
-            cleanupObj = onCleanup(@() delete(progDlg));
+            cleanupObj = onCleanup(@() delete(progDlg)); % Ensure dialog closes
+
+            calculationErrorOccurred = false;
             for n = 1:num_neurons
                 if progDlg.CancelRequested
                     uialert(app.UIFigure, 'Analysis cancelled by user.', 'Analysis Cancelled');
-                    app.dff_data = [];
+                    app.dff_data = []; % Clear partial results
                     app.zscore_dff_data = [];
                     app.results = [];
+                    % Reset signal type dropdown if analysis was for dF/F
+                    app.SignalTypeDropDown.Items = {'Raw Signal'};
+                    app.SignalTypeDropDown.Value = 'Raw Signal';
+                    app.signal_type = 'Raw Signal';
+                    app.SaveResultsButton.Enable = 'off';
+                    UpdatePlot(app);
                     return;
                 end
                 progDlg.Message = sprintf('Processing Neuron %d/%d', n, num_neurons);
                 progDlg.Value = n / num_neurons;
+                drawnow; % Update dialog
+
                 fluo_trace = app.fluo_data(n, :);
                 app.results(n).neuron_id = n;
                 try
@@ -509,68 +827,93 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     dff_trace = (fluo_trace - F0) ./ F0;
                     app.dff_data(n, :) = dff_trace;
                     app.results(n).dff_trace = dff_trace;
+
                     if app.calculate_zscore
-                        app.zscore_dff_data(n, :) = (dff_trace - mean(dff_trace)) / std(dff_trace);
+                        if std(dff_trace) == 0 % Avoid division by zero for constant traces
+                            app.zscore_dff_data(n, :) = zeros(1, num_frames); 
+                        else
+                            app.zscore_dff_data(n, :) = (dff_trace - mean(dff_trace)) / std(dff_trace);
+                        end
                         app.results(n).zscore_dff_trace = app.zscore_dff_data(n, :);
                     else
                         app.results(n).zscore_dff_trace = [];
                     end
-                catch ME
-                    uialert(app.UIFigure, sprintf('Error computing signals for neuron %d: %s', n, ME.message), ...
-                        'Computation Error');
-                    app.dff_data = [];
-                    app.zscore_dff_data = [];
-                    app.results = [];
-                    return;
+                catch ME_neuron
+                    warning('Error computing signals for neuron %d: %s', n, ME_neuron.message);
+                    % Mark error and continue, or stop? For now, continue but warn.
+                    % Fill with NaNs or zeros for this neuron to indicate failure
+                    app.dff_data(n, :) = NaN; 
+                    if app.calculate_zscore, app.zscore_dff_data(n, :) = NaN; end
+                    app.results(n).dff_trace = NaN(1,num_frames);
+                    if app.calculate_zscore, app.results(n).zscore_dff_trace = NaN(1,num_frames); end
+                    calculationErrorOccurred = true;
                 end
             end
             
-            neuronItems = arrayfun(@(x) sprintf('Neuron %d', x), 1:num_neurons, 'UniformOutput', false);
-            if isempty(neuronItems)
-                neuronItems = {'N/A'};
-                app.current_neuron_id = 0;
+            progDlg.Value = 1; progDlg.Message = 'Analysis complete!';
+            pause(0.5); % Allow dialog to show complete message
+
+            if calculationErrorOccurred
+                uialert(app.UIFigure, 'Analysis completed, but errors occurred for one or more neurons. Check command window for warnings.', ...
+                        'Analysis Warning', 'Icon', 'warning');
             else
-                if strcmp(app.NeuronDropDown.Items{1}, 'N/A') || app.current_neuron_id > num_neurons
-                    app.current_neuron_id = 1;
-                end
+                uialert(app.UIFigure, 'Analysis complete.', 'Success', 'Icon', 'success');
             end
             
-            app.NeuronDropDown.Items = neuronItems;
-            app.NeuronDropDown.Value = sprintf('Neuron %d', app.current_neuron_id);
-            app.NeuronDropDown.Enable = 'on';
-            app.PreviousNeuronButton.Enable = 'on';
-            app.NextNeuronButton.Enable = 'on';
+
+            % Update UI elements related to results
             app.SaveResultsButton.Enable = 'on';
-            app.DisplayAllNeuronsButton.Enable = 'on';
-            app.SignalTypeDropDown.Items = {'Raw Signal', 'ΔF/F'};
-            app.signal_type = 'ΔF/F';
-            if app.calculate_zscore
-                app.SignalTypeDropDown.Items = {'Raw Signal', 'ΔF/F', 'z-score ΔF/F'};
+            
+            new_signal_types = {'Raw Signal', 'ΔF/F'};
+            if app.calculate_zscore && ~isempty(app.zscore_dff_data)
+                new_signal_types = [new_signal_types, 'z-score ΔF/F'];
             end
-            app.SignalTypeDropDown.Value = 'ΔF/F';
+            app.SignalTypeDropDown.Items = new_signal_types;
+            
+            % Set plot to ΔF/F by default after analysis
+            if ismember('ΔF/F', new_signal_types)
+                app.SignalTypeDropDown.Value = 'ΔF/F';
+                app.signal_type = 'ΔF/F';
+            else % Should not happen if dff_data is populated
+                app.SignalTypeDropDown.Value = 'Raw Signal';
+                app.signal_type = 'Raw Signal';
+            end
+            
+            % Ensure current_neuron_id is valid before updating plot
+            if app.current_neuron_id == 0 && num_neurons > 0
+                app.current_neuron_id = 1;
+                app.NeuronDropDown.Value = sprintf('Neuron %d', app.current_neuron_id);
+            elseif app.current_neuron_id > num_neurons && num_neurons > 0
+                 app.current_neuron_id = num_neurons;
+                 app.NeuronDropDown.Value = sprintf('Neuron %d', app.current_neuron_id);
+            elseif num_neurons == 0 % No neurons, should not happen here
+                app.current_neuron_id = 0;
+                app.NeuronDropDown.Value = 'N/A';
+            end
+
             UpdatePlot(app);
         end
-        
+
         % Signal type dropdown value changed
         function SignalTypeDropDownValueChanged(app, event)
             app.signal_type = app.SignalTypeDropDown.Value;
-            app.display_all = false;
+            app.display_all = false; % Reset to single neuron view when type changes
             UpdatePlot(app);
         end
-        
+
         % Neuron dropdown value changed
         function NeuronDropDownValueChanged(app, event)
             if strcmp(app.NeuronDropDown.Value, 'N/A')
-                app.current_neuron_id = 0;
-                UpdatePlot(app);
+                app.current_neuron_id = 0; % Or some other indicator for no neuron
+                UpdatePlot(app); % Update plot to show "no neuron selected" or clear
                 return;
             end
             selectedNeuronStr = app.NeuronDropDown.Value;
             app.current_neuron_id = str2double(regexp(selectedNeuronStr, '\d+', 'match', 'once'));
-            app.display_all = false;
+            app.display_all = false; % Ensure single neuron display
             UpdatePlot(app);
         end
-        
+
         % Previous neuron button pushed
         function PreviousNeuronButtonPushed(app, event)
             if isempty(app.fluo_data) || app.current_neuron_id <= 1
@@ -581,7 +924,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.display_all = false;
             UpdatePlot(app);
         end
-        
+
         % Next neuron button pushed
         function NextNeuronButtonPushed(app, event)
             if isempty(app.fluo_data) || app.current_neuron_id >= size(app.fluo_data, 1)
@@ -592,7 +935,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.display_all = false;
             UpdatePlot(app);
         end
-        
+
         % Update all neurons plot button pushed
         function DisplayAllNeuronsButtonPushed(app, event)
             app.scalebar_signal = app.ScalebarSignalEditField.Value;
@@ -601,125 +944,161 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.selected_roi_str = app.SelectedROIEditField.Value;
             app.roi_interval = app.ROIIntervalEditField.Value;
             app.color_map = app.ColorMapEditField.Value;
-            app.display_all = true;
-            UpdateAllNeuronsPlot(app);
+            
+            % No need to set app.display_all = true here, 
+            % UpdateAllNeuronsPlot is for the separate figure.
+            % The main UIAxes plot is controlled by app.display_all for its own context.
+            % However, if the intention was to also show all in UIAxes:
+            % app.display_all = true; 
+            % UpdatePlot(app); % This would update UIAxes
+            
+            UpdateAllNeuronsPlot(app); % This updates the separate figure window
         end
-        
+
         % Save results button pushed
         function SaveResultsButtonPushed(app, event)
-            if isempty(app.fluo_data)
-                uialert(app.UIFigure, 'No results to save.', 'Save Error');
+            if isempty(app.results) && isempty(app.dff_data) % Check if there are any results to save
+                uialert(app.UIFigure, 'No analysis results to save.', 'Save Error');
                 return;
             end
-            [fileName, filePath] = uiputfile({'*.mat', 'MAT-file (*.mat)'}, 'Save Results', app.selectedFolder);
+            
+            defaultFileName = 'analysis_results.mat';
+            if ~isempty(app.loaded_file_name)
+                [~, name, ~] = fileparts(app.loaded_file_name);
+                defaultFileName = [name '_analysis_results.mat'];
+            end
+
+            [fileName, filePath] = uiputfile({'*.mat', 'MAT-file (*.mat)'}, 'Save Results', fullfile(app.selectedFolder, defaultFileName));
             if isequal(fileName, 0) || isequal(filePath, 0)
                 uialert(app.UIFigure, 'Save cancelled.', 'Save Operation');
                 return;
             end
-            progressDlg = uiprogressdlg(app.UIFigure,'Title','Saving Data','Indeterminate','on');
+            progressDlg = uiprogressdlg(app.UIFigure,'Title','Saving Data','Message', 'Preparing data for saving...','Indeterminate','on');
             drawnow
-            [~, name, ~] = fileparts(fileName);
+
+            [~, name, ~] = fileparts(fileName); % Use the name part from uiputfile
             matPath = fullfile(filePath, [name '.mat']);
-            xlsxPath = fullfile(filePath, [name '.xlsx']);
-            raw_sig = app.fluo_data;
-            dff_sig = app.dff_data;
-            zscore_dff_sig = app.zscore_dff_data;
-            time_vector = app.time_vector;
-            framerate = app.framerate;
-            calculate_zscore = app.calculate_zscore;
-            baseline_method = app.baseline_method;
-            percentile_value = app.percentile_value;
-            baseline_time = app.baseline_time;
-            polynomial_order = app.polynomial_order;
-            moving_window_sec = app.moving_window_sec;
-            moving_percentile = app.moving_percentile;
-            scalebar_signal = app.scalebar_signal;
-            plot_scale_bar_time = app.plot_scale_bar_time;
-            scalebar_time = app.scalebar_time;
-            selected_roi_str = app.selected_roi_str;
-            roi_interval = app.roi_interval;
-            color_map = app.color_map;
-            analysis_date = datestr(now);
+            xlsxPath = fullfile(filePath, [name '.xlsx']); % Excel file with the same base name
+
+            % Prepare data for saving (ensure all relevant app properties are captured)
+            saveData.raw_fluorescence = app.fluo_data;
+            saveData.deltaF_over_F = app.dff_data;
+            if app.calculate_zscore && ~isempty(app.zscore_dff_data)
+                saveData.zscore_deltaF_over_F = app.zscore_dff_data;
+            end
+            saveData.time_vector_seconds = app.time_vector;
+            saveData.analysis_parameters = struct(...
+                'loaded_file_name', app.loaded_file_name, ...
+                'framerate_Hz', app.framerate, ...
+                'calculate_zscore', app.calculate_zscore, ...
+                'baseline_method', app.baseline_method, ...
+                'percentile_value', app.percentile_value, ...
+                'baseline_time_setting', app.baseline_time, ...
+                'polynomial_order', app.polynomial_order, ...
+                'moving_window_seconds', app.moving_window_sec, ...
+                'moving_percentile', app.moving_percentile, ...
+                'analysis_date', datestr(now) ...
+            );
+            saveData.detailed_results_per_neuron = app.results; % Contains neuron_id, dff_trace, zscore_dff_trace
+
+            % Parameters for "All Neurons Plot" if any
+            saveData.all_neurons_plot_settings = struct(...
+                 'scalebar_signal', app.scalebar_signal, ...
+                 'plot_scale_bar_time', app.plot_scale_bar_time, ...
+                 'scalebar_time', app.scalebar_time, ...
+                 'selected_roi_str', app.selected_roi_str, ...
+                 'roi_interval', app.roi_interval, ...
+                 'color_map', app.color_map ...
+            );
+
             try
-                saveParams = struct('raw_sig', raw_sig, 'dff_sig', dff_sig, ...
-                    'time_vector', time_vector, 'framerate', framerate, ...
-                    'calculate_zscore', calculate_zscore, 'baseline_method', baseline_method, ...
-                    'scalebar_signal', scalebar_signal, 'plot_scale_bar_time', plot_scale_bar_time, ...
-                    'scalebar_time', scalebar_time, 'selected_roi_str', selected_roi_str, ...
-                    'roi_interval', roi_interval, 'color_map', color_map, 'analysis_date', analysis_date);
-                
-                if app.calculate_zscore
-                    saveParams.zscore_dff_sig = zscore_dff_sig;
+                progressDlg.Message = 'Saving .mat file...';
+                drawnow;
+                save(matPath, 'saveData', '-v7.3'); % Save the whole struct
+
+                progressDlg.Message = 'Saving raw signal to Excel...';
+                drawnow;
+                if ~isempty(app.fluo_data)
+                    writetable(array2table(app.fluo_data), xlsxPath, 'Sheet', 'RawFluorescence', 'WriteMode', 'replacefile');
                 end
                 
-                if strcmp(baseline_method, 'Percentile')
-                    saveParams.percentile_value = percentile_value;
-                    saveParams.baseline_time = baseline_time;
-                elseif strcmp(baseline_method, 'Polynomial')
-                    saveParams.polynomial_order = polynomial_order;
-                elseif strcmp(baseline_method, 'Moving Percentile')
-                    saveParams.moving_window_sec = moving_window_sec;
-                    saveParams.moving_percentile = moving_percentile;
+                progressDlg.Message = 'Saving dF/F to Excel...';
+                drawnow;
+                if ~isempty(app.dff_data)
+                     writetable(array2table(app.dff_data), xlsxPath, 'Sheet', 'DeltaFoverF', 'WriteMode', 'inplace');
+                end
+
+                if app.calculate_zscore && ~isempty(app.zscore_dff_data)
+                    progressDlg.Message = 'Saving z-score dF/F to Excel...';
+                    drawnow;
+                    writetable(array2table(app.zscore_dff_data), xlsxPath, 'Sheet', 'ZScoreDeltaFoverF', 'WriteMode', 'inplace');
                 end
                 
-                save(matPath, '-struct', 'saveParams', '-v7.3');
-                raw_sig_table = array2table(raw_sig);
-                dff_sig_table = array2table(dff_sig);
-                writetable(raw_sig_table, xlsxPath, 'Sheet', 'raw_sig',WriteMode='replacefile');
-                writetable(dff_sig_table, xlsxPath, 'Sheet', 'dff_sig',WriteMode='inplace');
-                
-                if app.calculate_zscore
-                    zscore_sig_table = array2table(zscore_dff_sig);
-                    writetable(zscore_sig_table, xlsxPath, 'Sheet', 'zscore_dff_sig', WriteMode='inplace');
+                progressDlg.Message = 'Saving parameters to Excel...';
+                drawnow;
+                % Create a table for parameters
+                param_names = fieldnames(saveData.analysis_parameters);
+                param_values = struct2cell(saveData.analysis_parameters);
+                % Handle non-scalar cell contents for table creation
+                for i = 1:length(param_values)
+                    if ischar(param_values{i})
+                        param_values{i} = {param_values{i}}; % Ensure char is in a cell
+                    elseif isnumeric(param_values{i}) && isscalar(param_values{i})
+                         param_values{i} = param_values{i}; % Keep as is
+                    elseif islogical(param_values{i})
+                         param_values{i} = {mat2str(param_values{i})}; % Convert logical to string
+                    else % For other types or non-scalars, convert to string representation
+                        param_values{i} = {mat2str(param_values{i})};
+                    end
                 end
-                
-                params_headers = {'Framerate_Hz', 'Analysis_Date', 'Calculate_ZScore'};
-                params_values = {framerate, analysis_date, calculate_zscore};
-                params_headers = [params_headers, 'Baseline_Method'];
-                params_values = [params_values, baseline_method];
-                
-                if strcmp(baseline_method, 'Percentile')
-                    params_headers = [params_headers, 'Percentile_Value', 'Baseline_Time'];
-                    params_values = [params_values, percentile_value, baseline_time];
-                elseif strcmp(baseline_method, 'Polynomial')
-                    params_headers = [params_headers, 'Polynomial_Order'];
-                    params_values = [params_values, polynomial_order];
-                elseif strcmp(baseline_method, 'Moving Percentile')
-                    params_headers = [params_headers, 'Moving_Window_sec', 'Moving_Percentile'];
-                    params_values = [params_values, moving_window_sec, moving_percentile];
-                end
-                
-                params_table = array2table(params_values', 'VariableNames', {'Value'}, 'RowNames', params_headers');
-                writetable(params_table, xlsxPath, 'Sheet', 'Parameters', 'WriteRowNames', true, WriteMode='inplace');
+
+                params_table = table(param_values(:), 'RowNames', param_names, 'VariableNames', {'Value'});
+                writetable(params_table, xlsxPath, 'Sheet', 'AnalysisParameters', 'WriteRowNames', true, 'WriteMode', 'inplace');
+
+
                 close(progressDlg);
                 uialert(app.UIFigure, sprintf('Results saved to:\n%s\n%s', matPath, xlsxPath), ...
                     'Save Success', 'Icon', 'success');
-            catch ME
+            catch ME_save
                 close(progressDlg);
-                uialert(app.UIFigure, ['Error saving results: ' ME.message], 'Save Error');
+                uialert(app.UIFigure, ['Error saving results: ' ME_save.message], 'Save Error');
+                disp(ME_save.getReport);
             end
         end
-        
+
         % Baseline method dropdown value changed
-        function BaselineMethodDropDownValueChanged(app, event)
+        function BaselineMethodDropDownValueChanged(app, event) % Added event arg
             app.baseline_method = app.BaselineMethodDropDown.Value;
-            app.PercentileEditField.Enable = strcmp(app.baseline_method, 'Percentile');
-            app.BaselineTimeEditField.Enable = strcmp(app.baseline_method, 'Percentile');
-            app.PolynomialOrderEditField.Enable = strcmp(app.baseline_method, 'Polynomial');
-            app.MovingWindowEditField.Enable = strcmp(app.baseline_method, 'Moving Percentile');
-            app.MovingPercentileEditField.Enable = strcmp(app.baseline_method, 'Moving Percentile');
+            isPercentile = strcmp(app.baseline_method, 'Percentile');
+            isPolynomial = strcmp(app.baseline_method, 'Polynomial');
+            isMovingPercentile = strcmp(app.baseline_method, 'Moving Percentile');
+
+            app.PercentileEditField.Enable = isPercentile;
+            app.PercentileEditFieldLabel.Enable = isPercentile;
+            app.BaselineTimeEditField.Enable = isPercentile;
+            app.BaselineTimeLabel.Enable = isPercentile;
+
+            app.PolynomialOrderEditField.Enable = isPolynomial;
+            app.PolynomialOrderLabel.Enable = isPolynomial;
+
+            app.MovingWindowEditField.Enable = isMovingPercentile;
+            app.MovingWindowLabel.Enable = isMovingPercentile;
+            app.MovingPercentileEditField.Enable = isMovingPercentile;
+            app.MovingPercentileLabel.Enable = isMovingPercentile;
         end
     end
-    
+
     % Component initialization
     methods (Access = private)
-        
+
         % Create UI components
         function createComponents(app)
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1200 750];
-            app.UIFigure.Name = 'Calcium ΔF/F Calculator';
-            
+            app.UIFigure.Name = 'Calcium ΔF/F Calculator v2'; % Updated Name
+            app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @(src,event) delete(app), true);
+
+
             % File Operations Panel
             app.FileOperationsPanel = uipanel(app.UIFigure);
             app.FileOperationsPanel.Title = 'File Operations';
@@ -732,6 +1111,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.FramerateEditField.ValueDisplayFormat = '%.2f';
             app.FramerateEditField.Position = [110 40 100 22];
             app.FramerateEditField.Value = app.framerate;
+            % NEW: Add ValueChangedFcn for FramerateEditField
+            app.FramerateEditField.ValueChangedFcn = createCallbackFcn(app, @FramerateEditFieldValueChanged, true);
+
             app.LoadDataButton = uibutton(app.FileOperationsPanel, 'push');
             app.LoadDataButton.ButtonPushedFcn = createCallbackFcn(app, @LoadDataButtonPushed, true);
             app.LoadDataButton.Position = [10 10 100 22];
@@ -739,14 +1121,14 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.LoadedFileLabel = uilabel(app.FileOperationsPanel);
             app.LoadedFileLabel.Position = [120 10 170 22];
             app.LoadedFileLabel.Text = 'No file loaded';
-            
+
             % Delta F/F Calculate Panel
             app.DeltaFOverFCalculatePanel = uipanel(app.UIFigure);
             app.DeltaFOverFCalculatePanel.Title = 'ΔF/F Calculate';
             app.DeltaFOverFCalculatePanel.Position = [20 365 300 250];
             app.CalculateZScoreCheckBox = uicheckbox(app.DeltaFOverFCalculatePanel);
             app.CalculateZScoreCheckBox.Text = 'Calculate z-score ΔF/F';
-            app.CalculateZScoreCheckBox.Position = [10 205 150 22];
+            app.CalculateZScoreCheckBox.Position = [10 205 180 22]; % Increased width
             app.CalculateZScoreCheckBox.Value = app.calculate_zscore;
             app.BaselineMethodDropDownLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.BaselineMethodDropDownLabel.HorizontalAlignment = 'right';
@@ -757,14 +1139,16 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.BaselineMethodDropDown.ValueChangedFcn = createCallbackFcn(app, @BaselineMethodDropDownValueChanged, true);
             app.BaselineMethodDropDown.Position = [120 178 150 22];
             app.BaselineMethodDropDown.Value = app.baseline_method;
+            
             app.PercentileEditFieldLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.PercentileEditFieldLabel.HorizontalAlignment = 'right';
             app.PercentileEditFieldLabel.Position = [10 150 100 22];
-            app.PercentileEditFieldLabel.Text = 'Percentile';
+            app.PercentileEditFieldLabel.Text = 'Percentile(s):';
             app.PercentileEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'text');
             app.PercentileEditField.Position = [120 150 150 22];
             app.PercentileEditField.Value = app.percentile_value;
             app.PercentileEditField.Placeholder = '10:20 or 20';
+            
             app.BaselineTimeLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.BaselineTimeLabel.HorizontalAlignment = 'right';
             app.BaselineTimeLabel.Position = [10 122 100 22];
@@ -772,7 +1156,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.BaselineTimeEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'text');
             app.BaselineTimeEditField.Position = [120 122 150 22];
             app.BaselineTimeEditField.Value = app.baseline_time;
-            app.BaselineTimeEditField.Placeholder = 'all or 1:30';
+            app.BaselineTimeEditField.Placeholder = 'all or 0:30 or 30';
+
             app.PolynomialOrderLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.PolynomialOrderLabel.HorizontalAlignment = 'right';
             app.PolynomialOrderLabel.Position = [10 94 100 22];
@@ -781,7 +1166,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.PolynomialOrderEditField.ValueDisplayFormat = '%d';
             app.PolynomialOrderEditField.Position = [120 94 150 22];
             app.PolynomialOrderEditField.Value = app.polynomial_order;
-            app.PolynomialOrderEditField.Enable = 'off';
+            
             app.MovingWindowLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.MovingWindowLabel.HorizontalAlignment = 'right';
             app.MovingWindowLabel.Position = [10 66 100 22];
@@ -790,16 +1175,16 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.MovingWindowEditField.ValueDisplayFormat = '%.2f';
             app.MovingWindowEditField.Position = [120 66 150 22];
             app.MovingWindowEditField.Value = app.moving_window_sec;
-            app.MovingWindowEditField.Enable = 'off';
+
             app.MovingPercentileLabel = uilabel(app.DeltaFOverFCalculatePanel);
             app.MovingPercentileLabel.HorizontalAlignment = 'right';
             app.MovingPercentileLabel.Position = [10 38 100 22];
             app.MovingPercentileLabel.Text = 'Moving Percentile:';
             app.MovingPercentileEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
-            app.MovingPercentileEditField.ValueDisplayFormat = '%.2f';
+            app.MovingPercentileEditField.ValueDisplayFormat = '%.1f'; % Allow one decimal
             app.MovingPercentileEditField.Position = [120 38 150 22];
             app.MovingPercentileEditField.Value = app.moving_percentile;
-            app.MovingPercentileEditField.Enable = 'off';
+
             app.RunAnalysisButton = uibutton(app.DeltaFOverFCalculatePanel, 'push');
             app.RunAnalysisButton.ButtonPushedFcn = createCallbackFcn(app, @RunAnalysisButtonPushed, true);
             app.RunAnalysisButton.Position = [10 10 100 22];
@@ -808,53 +1193,69 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.SaveResultsButton.ButtonPushedFcn = createCallbackFcn(app, @SaveResultsButtonPushed, true);
             app.SaveResultsButton.Position = [115 10 100 22];
             app.SaveResultsButton.Text = 'Save Results';
-            
+
             % Neuron Display Panel
             app.NeuronDisplayPanel = uipanel(app.UIFigure);
-            app.NeuronDisplayPanel.Title = 'Neuron Display';
-            app.NeuronDisplayPanel.Position = [20 245 300 110];
+            app.NeuronDisplayPanel.Title = 'Neuron Display & Export'; % Updated title
+            app.NeuronDisplayPanel.Position = [20 220 300 135]; % Increased height for new button
+            
             app.SelectNeuronLabel = uilabel(app.NeuronDisplayPanel);
             app.SelectNeuronLabel.HorizontalAlignment = 'right';
-            app.SelectNeuronLabel.Position = [10 65 85 22];
+            app.SelectNeuronLabel.Position = [10 90 85 22]; % Adjusted Y
             app.SelectNeuronLabel.Text = 'Select Neuron:';
+            
             app.NeuronDropDown = uidropdown(app.NeuronDisplayPanel);
             app.NeuronDropDown.ValueChangedFcn = createCallbackFcn(app, @NeuronDropDownValueChanged, true);
-            app.NeuronDropDown.Position = [105 65 170 22];
+            app.NeuronDropDown.Position = [105 90 170 22]; % Adjusted Y
+            
             app.PreviousNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
             app.PreviousNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @PreviousNeuronButtonPushed, true);
-            app.PreviousNeuronButton.Position = [10 35 85 22];
+            app.PreviousNeuronButton.Position = [10 60 85 22]; % Adjusted Y
             app.PreviousNeuronButton.Text = 'Previous';
+            
             app.NextNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
             app.NextNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @NextNeuronButtonPushed, true);
-            app.NextNeuronButton.Position = [105 35 85 22];
+            app.NextNeuronButton.Position = [105 60 85 22]; % Adjusted Y
             app.NextNeuronButton.Text = 'Next';
-            
-            % All Neurons Display Panel
+
+            % NEW: Export All Neurons Button
+            app.ExportAllNeuronsButton = uibutton(app.NeuronDisplayPanel, 'push');
+            app.ExportAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @ExportAllNeuronsButtonPushed, true);
+            app.ExportAllNeuronsButton.Position = [10 30 180 22]; % Positioned below Next/Prev
+            app.ExportAllNeuronsButton.Text = 'Export All Neurons';
+
+
+            % All Neurons Display Panel (for external plot settings)
             app.AllNeuronsDisplayPanel = uipanel(app.UIFigure);
-            app.AllNeuronsDisplayPanel.Title = 'All Neurons Display';
-            app.AllNeuronsDisplayPanel.Position = [20 30 300 200];
+            app.AllNeuronsDisplayPanel.Title = 'All Neurons Plot Settings (ΔF/F)';
+            app.AllNeuronsDisplayPanel.Position = [20 10 300 200]; % Adjusted Y
+            
             app.DisplayAllNeuronsButton = uibutton(app.AllNeuronsDisplayPanel, 'push');
             app.DisplayAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @DisplayAllNeuronsButtonPushed, true);
-            app.DisplayAllNeuronsButton.Position = [10 155 140 22];
-            app.DisplayAllNeuronsButton.Text = 'Display All Neurons';
+            app.DisplayAllNeuronsButton.Position = [10 155 200 22]; % Adjusted width
+            app.DisplayAllNeuronsButton.Text = 'Open/Update All Neurons Plot';
+            
             app.ScalebarSignalLabel = uilabel(app.AllNeuronsDisplayPanel);
-            app.ScalebarSignalLabel.HorizontalAlignment = 'left';
+            app.ScalebarSignalLabel.HorizontalAlignment = 'left'; % Changed to left for consistency
             app.ScalebarSignalLabel.Position = [10 125 130 22];
-            app.ScalebarSignalLabel.Text = 'Scalebar Signal:';
+            app.ScalebarSignalLabel.Text = 'Scalebar Signal Value:';
             app.ScalebarSignalEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
             app.ScalebarSignalEditField.Position = [170 125 100 22];
             app.ScalebarSignalEditField.Value = app.scalebar_signal;
+            
             app.PlotScaleBarTimeCheckBox = uicheckbox(app.AllNeuronsDisplayPanel);
             app.PlotScaleBarTimeCheckBox.Text = 'Plot Time Scalebar';
-            app.PlotScaleBarTimeCheckBox.Position = [10 95 120 22];
+            app.PlotScaleBarTimeCheckBox.Position = [10 95 140 22]; % Increased width
             app.PlotScaleBarTimeCheckBox.Value = app.plot_scale_bar_time;
+            
             app.ScalebarTimeLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ScalebarTimeLabel.HorizontalAlignment = 'right';
-            app.ScalebarTimeLabel.Position = [130 95 80 22];
-            app.ScalebarTimeLabel.Text = 'Scalebar';
+            app.ScalebarTimeLabel.Position = [130 95 80 22]; % Adjusted X
+            app.ScalebarTimeLabel.Text = 'Length (s):'; % More descriptive
             app.ScalebarTimeEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
             app.ScalebarTimeEditField.Position = [220 95 50 22];
             app.ScalebarTimeEditField.Value = app.scalebar_time;
+            
             app.SelectedROILabel = uilabel(app.AllNeuronsDisplayPanel);
             app.SelectedROILabel.HorizontalAlignment = 'right';
             app.SelectedROILabel.Position = [10 65 80 22];
@@ -862,7 +1263,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.SelectedROIEditField = uieditfield(app.AllNeuronsDisplayPanel, 'text');
             app.SelectedROIEditField.Position = [100 65 170 22];
             app.SelectedROIEditField.Value = app.selected_roi_str;
-            app.SelectedROIEditField.Placeholder = '1:5,7:9';
+            app.SelectedROIEditField.Placeholder = 'e.g., 1:5,7,10:12';
+            
             app.ROIIntervalLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ROIIntervalLabel.HorizontalAlignment = 'right';
             app.ROIIntervalLabel.Position = [10 35 80 22];
@@ -870,6 +1272,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.ROIIntervalEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
             app.ROIIntervalEditField.Position = [100 35 170 22];
             app.ROIIntervalEditField.Value = app.roi_interval;
+            
             app.ColorMapLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ColorMapLabel.HorizontalAlignment = 'right';
             app.ColorMapLabel.Position = [10 5 80 22];
@@ -877,8 +1280,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.ColorMapEditField = uieditfield(app.AllNeuronsDisplayPanel, 'text');
             app.ColorMapEditField.Position = [100 5 170 22];
             app.ColorMapEditField.Value = app.color_map;
-            app.ColorMapEditField.Placeholder = 'colormap(e.g.,turbo) or fixed(e.g., #ff0000)';
-            
+            app.ColorMapEditField.Placeholder = 'turbo, jet, or #RRGGBB';
+
+
             % UIAxes
             app.UIAxes = uiaxes(app.UIFigure);
             title(app.UIAxes, 'Signal')
@@ -886,37 +1290,37 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             ylabel(app.UIAxes, 'Raw Signal')
             app.UIAxes.Position = [350 50 800 650];
             grid(app.UIAxes, 'on');
-            
+
             % Signal Type Dropdown
             app.SignalTypeDropDown = uidropdown(app.UIFigure);
             app.SignalTypeDropDown.Items = {'Raw Signal'};
             app.SignalTypeDropDown.Value = 'Raw Signal';
             app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
-            app.SignalTypeDropDown.Position = [360 710 100 22];
+            app.SignalTypeDropDown.Position = [360 710 120 22]; % Increased width for z-score
             app.SignalTypeDropDown.Enable = 'off';
-            
-            % Export Plot Button
+
+            % Export Plot Button (for single plot in UIAxes)
             app.ExportPlotButton = uibutton(app.UIFigure, 'push');
             app.ExportPlotButton.ButtonPushedFcn = createCallbackFcn(app, @ExportPlotButtonPushed, true);
-            app.ExportPlotButton.Position = [470 710 100 22];
-            app.ExportPlotButton.Text = 'Export Plot';
-            
+            app.ExportPlotButton.Position = [490 710 100 22]; % Adjusted X
+            app.ExportPlotButton.Text = 'Export This Plot';
+
             % Set Width Button
             app.SetWidthButton = uibutton(app.UIFigure, 'push');
             app.SetWidthButton.ButtonPushedFcn = createCallbackFcn(app, @SetWidthButtonPushed, true);
-            app.SetWidthButton.Position = [580 710 100 22];
-            app.SetWidthButton.Text = 'Set Width';
-            
+            app.SetWidthButton.Position = [600 710 100 22]; % Adjusted X
+            app.SetWidthButton.Text = 'Set Axes Width';
+
             % Set Height Button
             app.SetHeightButton = uibutton(app.UIFigure, 'push');
             app.SetHeightButton.ButtonPushedFcn = createCallbackFcn(app, @SetHeightButtonPushed, true);
-            app.SetHeightButton.Position = [690 710 100 22];
-            app.SetHeightButton.Text = 'Set Height';
-            
+            app.SetHeightButton.Position = [710 710 100 22]; % Adjusted X
+            app.SetHeightButton.Text = 'Set Axes Height';
+
             app.UIFigure.Visible = 'on';
         end
     end
-    
+
     % App creation and deletion
     methods (Access = public)
         function app = CalciumDeltaFCaculator
@@ -927,12 +1331,18 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 clear app
             end
         end
-        
+
         function delete(app)
-            delete(app.UIFigure)
-            if isfield(app, 'display_figure_handles') && isvalid(app.display_figure_handles)
-                delete(app.display_figure_handles);
+            % Close any external figures created by the app
+            if isfield(app, 'display_figure_handles') && ~isempty(app.display_figure_handles) && isvalid(app.display_figure_handles)
+                try
+                    close(app.display_figure_handles);
+                catch
+                    % Figure might already be closed
+                end
             end
+            % Delete the main UIFigure
+            delete(app.UIFigure)
         end
     end
 end

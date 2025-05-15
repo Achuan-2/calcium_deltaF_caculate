@@ -7,6 +7,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         FramerateHzLabel         matlab.ui.control.Label
         FramerateEditField       matlab.ui.control.NumericEditField
         LoadDataButton           matlab.ui.control.Button
+        LoadedFileLabel          matlab.ui.control.Label
         DeltaFOverFCalculatePanel matlab.ui.container.Panel
         CalculateZScoreCheckBox  matlab.ui.control.CheckBox
         BaselineMethodDropDownLabel matlab.ui.control.Label
@@ -43,6 +44,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         DisplayAllNeuronsButton  matlab.ui.control.Button
         UIAxes                   matlab.ui.control.UIAxes
         SignalTypeDropDown       matlab.ui.control.DropDown
+        ExportPlotButton         matlab.ui.control.Button
+        SetWidthButton           matlab.ui.control.Button
+        SetHeightButton          matlab.ui.control.Button
     end
     
     % Properties that store app data
@@ -71,6 +75,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         roi_interval = 1         % Default ROI interval
         color_map = 'turbo'      % Default color map
         signal_type = 'Raw Signal' % Current signal type to display
+        loaded_file_name = ''    % Name of the loaded file
     end
     
     methods (Access = private)
@@ -145,6 +150,75 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 legend(app.UIAxes, 'show');
             end
             hold(app.UIAxes, 'off');
+        end
+        
+        % Export plot to external figure
+        function ExportPlotButtonPushed(app, event)
+            if isempty(app.fluo_data)
+                uialert(app.UIFigure, 'No data to export.', 'Export Error');
+                return;
+            end
+            
+            fig = figure('Name', sprintf('%s - Neuron %d', app.signal_type, app.current_neuron_id));
+            ax = axes(fig);
+            
+            ylabel_str = 'Raw Signal';
+            if strcmp(app.signal_type, 'ΔF/F')
+                ylabel_str = 'ΔF/F';
+                trace = app.dff_data(app.current_neuron_id, :);
+            elseif strcmp(app.signal_type, 'z-score ΔF/F')
+                ylabel_str = 'z-score ΔF/F';
+                trace = app.zscore_dff_data(app.current_neuron_id, :);
+            else
+                trace = app.fluo_data(app.current_neuron_id, :);
+            end
+            
+            plot(ax, app.time_vector, trace, 'b-', 'LineWidth', 1.5);
+            title(ax, sprintf('%s for Neuron %d', app.signal_type, app.current_neuron_id));
+            xlabel(ax, 'Time (s)');
+            ylabel(ax, ylabel_str);
+            grid(ax, 'on');
+
+        end
+        
+        % Set axes width
+        function SetWidthButtonPushed(app, event)
+            prompt = {'Enter new width for UIAxes (pixels):'};
+            dlgtitle = 'Set Axes Width';
+            dims = [1 50];
+            definput = {num2str(app.UIAxes.Position(3))};
+            answer = inputdlg(prompt, dlgtitle, dims, definput);
+            
+            if ~isempty(answer)
+                new_width = str2double(answer{1});
+                if isnan(new_width) || new_width < 100
+                    uialert(app.UIFigure, 'Invalid width. Must be a number >= 100.', 'Input Error');
+                    return;
+                end
+                app.UIAxes.Position(3) = new_width;
+                uialert(app.UIFigure, sprintf('UIAxes width set to %d pixels.', new_width), ...
+                    'Width Updated', 'Icon', 'success');
+            end
+        end
+        
+        % Set axes height
+        function SetHeightButtonPushed(app, event)
+            prompt = {'Enter new height for UIAxes (pixels):'};
+            dlgtitle = 'Set Axes Height';
+            dims = [1 50];
+            definput = {num2str(app.UIAxes.Position(4))};
+            answer = inputdlg(prompt, dlgtitle, dims, definput);
+            
+            if ~isempty(answer)
+                new_height = str2double(answer{1});
+                if isnan(new_height) || new_height < 100
+                    uialert(app.UIFigure, 'Invalid height. Must be a number >= 100.', 'Input Error');
+                    return;
+                end
+                app.UIAxes.Position(4) = new_height;
+                uialert(app.UIFigure, sprintf('UIAxes height set to %d pixels.', new_height), ...
+                    'Height Updated', 'Icon', 'success');
+            end
         end
         
         % Calculate baseline F0
@@ -258,6 +332,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.SelectedROIEditField.Value = app.selected_roi_str;
             app.ROIIntervalEditField.Value = app.roi_interval;
             app.ColorMapEditField.Value = app.color_map;
+            app.LoadedFileLabel.Text = 'No file loaded';
         end
         
         % Load data button pushed
@@ -270,6 +345,8 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 return;
             end
             app.selectedFolder = filePath;
+            app.loaded_file_name = fileName;
+            app.LoadedFileLabel.Text = sprintf('%s', fileName);
             fullPath = fullfile(filePath, fileName);
             [~, ~, ext] = fileparts(fileName);
             app.framerate = app.FramerateEditField.Value;
@@ -346,6 +423,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 app.zscore_dff_data = [];
                 app.RunAnalysisButton.Enable = 'off';
                 app.SignalTypeDropDown.Enable = 'off';
+                app.LoadedFileLabel.Text = 'No file loaded';
             end
         end
         
@@ -369,9 +447,9 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 end
                 if ~strcmpi(app.baseline_time, 'all')
                     time_range = str2num(app.baseline_time);
-                        if isempty(time_range) || any(time_range < 0)
-                            error('Invalid baseline time range. Use "all" or range like "1:30".');
-                        end
+                    if isempty(time_range) || any(time_range < 0)
+                        error('Invalid baseline time range. Use "all" or range like "1:30".');
+                    end
                 end
                 if strcmp(app.baseline_method, 'Percentile')
                     perc_str = app.percentile_value;
@@ -524,7 +602,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.roi_interval = app.ROIIntervalEditField.Value;
             app.color_map = app.ColorMapEditField.Value;
             app.display_all = true;
-            % UpdatePlot(app);
             UpdateAllNeuronsPlot(app);
         end
         
@@ -534,7 +611,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                 uialert(app.UIFigure, 'No results to save.', 'Save Error');
                 return;
             end
-            % 添加一个进度条
             [fileName, filePath] = uiputfile({'*.mat', 'MAT-file (*.mat)'}, 'Save Results', app.selectedFolder);
             if isequal(fileName, 0) || isequal(filePath, 0)
                 uialert(app.UIFigure, 'Save cancelled.', 'Save Operation');
@@ -565,7 +641,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             color_map = app.color_map;
             analysis_date = datestr(now);
             try
-                % Create a struct with method-specific parameters to save
                 saveParams = struct('raw_sig', raw_sig, 'dff_sig', dff_sig, ...
                     'time_vector', time_vector, 'framerate', framerate, ...
                     'calculate_zscore', calculate_zscore, 'baseline_method', baseline_method, ...
@@ -573,12 +648,10 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     'scalebar_time', scalebar_time, 'selected_roi_str', selected_roi_str, ...
                     'roi_interval', roi_interval, 'color_map', color_map, 'analysis_date', analysis_date);
                 
-                % Add z-score data if calculated
                 if app.calculate_zscore
                     saveParams.zscore_dff_sig = zscore_dff_sig;
                 end
                 
-                % Add method-specific parameters
                 if strcmp(baseline_method, 'Percentile')
                     saveParams.percentile_value = percentile_value;
                     saveParams.baseline_time = baseline_time;
@@ -589,32 +662,19 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     saveParams.moving_percentile = moving_percentile;
                 end
                 
-                % Save the parameters to MAT file
                 save(matPath, '-struct', 'saveParams', '-v7.3');
-                % Convert matrices to tables with time information for better Excel output
-                
-                % Create table for raw signals with neuron columns
                 raw_sig_table = array2table(raw_sig);
-                
-                % Create table for dff signals
                 dff_sig_table = array2table(dff_sig);
-                
-                % Write tables to Excel file
                 writetable(raw_sig_table, xlsxPath, 'Sheet', 'raw_sig',WriteMode='replacefile');
                 writetable(dff_sig_table, xlsxPath, 'Sheet', 'dff_sig',WriteMode='inplace');
                 
-                % Write z-score data if available
                 if app.calculate_zscore
                     zscore_sig_table = array2table(zscore_dff_sig);
                     writetable(zscore_sig_table, xlsxPath, 'Sheet', 'zscore_dff_sig', WriteMode='inplace');
                 end
                 
-                % Create a parameters table for easy reference
-                % Create parameters table based on selected baseline method
                 params_headers = {'Framerate_Hz', 'Analysis_Date', 'Calculate_ZScore'};
                 params_values = {framerate, analysis_date, calculate_zscore};
-                
-                % Add method-specific parameters
                 params_headers = [params_headers, 'Baseline_Method'];
                 params_values = [params_values, baseline_method];
                 
@@ -657,13 +717,13 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         % Create UI components
         function createComponents(app)
             app.UIFigure = uifigure('Visible', 'off');
-            app.UIFigure.Position = [100 100 1200 750]; % Increased height from 700 to 750
+            app.UIFigure.Position = [100 100 1200 750];
             app.UIFigure.Name = 'Calcium ΔF/F Calculator';
             
             % File Operations Panel
             app.FileOperationsPanel = uipanel(app.UIFigure);
             app.FileOperationsPanel.Title = 'File Operations';
-            app.FileOperationsPanel.Position = [20 620 300 100]; % Adjusted y-position
+            app.FileOperationsPanel.Position = [20 620 300 100];
             app.FramerateHzLabel = uilabel(app.FileOperationsPanel);
             app.FramerateHzLabel.HorizontalAlignment = 'right';
             app.FramerateHzLabel.Position = [10 40 90 22];
@@ -676,11 +736,14 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.LoadDataButton.ButtonPushedFcn = createCallbackFcn(app, @LoadDataButtonPushed, true);
             app.LoadDataButton.Position = [10 10 100 22];
             app.LoadDataButton.Text = 'Load Data';
+            app.LoadedFileLabel = uilabel(app.FileOperationsPanel);
+            app.LoadedFileLabel.Position = [120 10 170 22];
+            app.LoadedFileLabel.Text = 'No file loaded';
             
             % Delta F/F Calculate Panel
             app.DeltaFOverFCalculatePanel = uipanel(app.UIFigure);
             app.DeltaFOverFCalculatePanel.Title = 'ΔF/F Calculate';
-            app.DeltaFOverFCalculatePanel.Position = [20 365 300 250]; % Increased height from 220 to 250
+            app.DeltaFOverFCalculatePanel.Position = [20 365 300 250];
             app.CalculateZScoreCheckBox = uicheckbox(app.DeltaFOverFCalculatePanel);
             app.CalculateZScoreCheckBox.Text = 'Calculate z-score ΔF/F';
             app.CalculateZScoreCheckBox.Position = [10 205 150 22];
@@ -745,10 +808,11 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.SaveResultsButton.ButtonPushedFcn = createCallbackFcn(app, @SaveResultsButtonPushed, true);
             app.SaveResultsButton.Position = [115 10 100 22];
             app.SaveResultsButton.Text = 'Save Results';
+            
             % Neuron Display Panel
             app.NeuronDisplayPanel = uipanel(app.UIFigure);
             app.NeuronDisplayPanel.Title = 'Neuron Display';
-            app.NeuronDisplayPanel.Position = [20 245 300 110]; % Adjusted y-position
+            app.NeuronDisplayPanel.Position = [20 245 300 110];
             app.SelectNeuronLabel = uilabel(app.NeuronDisplayPanel);
             app.SelectNeuronLabel.HorizontalAlignment = 'right';
             app.SelectNeuronLabel.Position = [10 65 85 22];
@@ -764,7 +828,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.NextNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @NextNeuronButtonPushed, true);
             app.NextNeuronButton.Position = [105 35 85 22];
             app.NextNeuronButton.Text = 'Next';
-
             
             % All Neurons Display Panel
             app.AllNeuronsDisplayPanel = uipanel(app.UIFigure);
@@ -821,7 +884,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             title(app.UIAxes, 'Signal')
             xlabel(app.UIAxes, 'Time (s)')
             ylabel(app.UIAxes, 'Raw Signal')
-            app.UIAxes.Position = [350 50 800 650]; % Increased height from 600 to 650
+            app.UIAxes.Position = [350 50 800 650];
             grid(app.UIAxes, 'on');
             
             % Signal Type Dropdown
@@ -829,8 +892,26 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.SignalTypeDropDown.Items = {'Raw Signal'};
             app.SignalTypeDropDown.Value = 'Raw Signal';
             app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
-            app.SignalTypeDropDown.Position = [360 710 100 22]; % Adjusted y-position
+            app.SignalTypeDropDown.Position = [360 710 100 22];
             app.SignalTypeDropDown.Enable = 'off';
+            
+            % Export Plot Button
+            app.ExportPlotButton = uibutton(app.UIFigure, 'push');
+            app.ExportPlotButton.ButtonPushedFcn = createCallbackFcn(app, @ExportPlotButtonPushed, true);
+            app.ExportPlotButton.Position = [470 710 100 22];
+            app.ExportPlotButton.Text = 'Export Plot';
+            
+            % Set Width Button
+            app.SetWidthButton = uibutton(app.UIFigure, 'push');
+            app.SetWidthButton.ButtonPushedFcn = createCallbackFcn(app, @SetWidthButtonPushed, true);
+            app.SetWidthButton.Position = [580 710 100 22];
+            app.SetWidthButton.Text = 'Set Width';
+            
+            % Set Height Button
+            app.SetHeightButton = uibutton(app.UIFigure, 'push');
+            app.SetHeightButton.ButtonPushedFcn = createCallbackFcn(app, @SetHeightButtonPushed, true);
+            app.SetHeightButton.Position = [690 710 100 22];
+            app.SetHeightButton.Text = 'Set Height';
             
             app.UIFigure.Visible = 'on';
         end

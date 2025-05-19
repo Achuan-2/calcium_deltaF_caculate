@@ -23,13 +23,15 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         MovingPercentileLabel matlab.ui.control.Label
         MovingPercentileEditField matlab.ui.control.NumericEditField
         RunAnalysisButton matlab.ui.control.Button
+        SaveResultsButton matlab.ui.control.Button
         NeuronDisplayPanel matlab.ui.container.Panel
         SelectNeuronLabel matlab.ui.control.Label
         NeuronDropDown matlab.ui.control.DropDown
         PreviousNeuronButton matlab.ui.control.Button
         NextNeuronButton matlab.ui.control.Button
-        SaveResultsButton matlab.ui.control.Button
+        ExportAllNeuronsButton matlab.ui.control.Button
         AllNeuronsDisplayPanel matlab.ui.container.Panel
+        DisplayAllNeuronsButton matlab.ui.control.Button
         ScalebarSignalLabel matlab.ui.control.Label
         ScalebarSignalEditField matlab.ui.control.NumericEditField
         PlotScaleBarTimeCheckBox matlab.ui.control.CheckBox
@@ -41,14 +43,12 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         ROIIntervalEditField matlab.ui.control.NumericEditField
         ColorMapLabel matlab.ui.control.Label
         ColorMapEditField matlab.ui.control.EditField
-        DisplayAllNeuronsButton matlab.ui.control.Button
         UIAxes matlab.ui.control.UIAxes
         SignalTypeDropDown matlab.ui.control.DropDown
         ExportPlotButton matlab.ui.control.Button
         SetWidthButton matlab.ui.control.Button
         SetHeightButton matlab.ui.control.Button
-        ExportAllNeuronsButton matlab.ui.control.Button
-        SetPlotColorButton matlab.ui.control.Button % NEW: Set Plot Color Button
+        SetPlotColorButton matlab.ui.control.Button
     end
 
     % Properties that store app data
@@ -58,7 +58,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         dff_data % Calculated ΔF/F data
         zscore_dff_data % Calculated z-score ΔF/F data
         time_vector % Time vector for plotting
-        framerate = 30 % Default framerate (Hz)
+        framerate = 3.6 % Default framerate (Hz)
         calculate_zscore = false % Flag to calculate z-score ΔF/F
         baseline_method = 'Percentile' % Default baseline method
         percentile_value = '10:20' % Default percentile
@@ -555,6 +555,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     xlabel(ax_export, 'Time (s)');
                     ylabel(ax_export, strrep(selected_signal_type, 'ΔF/F', 'dF/F')); 
                     grid(ax_export, 'on');
+                    box(ax_export, 'off'); % Remove top and right borders
                     xlim(ax_export, [app.time_vector(1), app.time_vector(end)]);
 
                     baseFigName = sprintf('%s_Neuron%d_%s', baseNameWithoutExt, n, file_suffix_type);
@@ -562,7 +563,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
                     pngFilePath = fullfile(exportDir, [baseFigName '.png']);
 
                     savefig(fig_export, figFilePath);
-                    exportgraphics(ax_export, pngFilePath, 'Resolution', 150); 
+                    exportgraphics(ax_export, pngFilePath, 'Resolution', 150);
 
                     close(fig_export);
                 catch ME_export_neuron
@@ -592,7 +593,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
     % Callbacks that handle component events
     methods (Access = private)
 
-        % Startup function
+        % Code that executes after component creation
         function startupFcn(app)
             assignin('base', 'app', app);
             app.RunAnalysisButton.Enable = 'off';
@@ -627,7 +628,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             BaselineMethodDropDownValueChanged(app, []); % Call to set initial visibility
         end
 
-        % Load data button pushed
+        % Button pushed function: LoadDataButton
         function LoadDataButtonPushed(app, event)
             f_dummy = figure('Position', [-100 -100 0 0],'CloseRequestFcn','','Visible','off'); 
             [fileName, filePath] = uigetfile({'*.mat';'*.xlsx;*.xls'}, 'Select Data File');
@@ -753,7 +754,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             end
         end
 
-        % Run analysis button pushed
+        % Button pushed function: RunAnalysisButton
         function RunAnalysisButtonPushed(app, event)
             if isempty(app.fluo_data)
                 uialert(app.UIFigure, 'No data loaded to analyze.', 'Analysis Error');
@@ -914,14 +915,14 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             UpdatePlot(app);
         end
 
-        % Signal type dropdown value changed
+        % Value changed function: SignalTypeDropDown
         function SignalTypeDropDownValueChanged(app, event)
             app.signal_type = app.SignalTypeDropDown.Value;
             app.display_all = false; % Reset to single neuron view when type changes
             UpdatePlot(app);
         end
 
-        % Neuron dropdown value changed
+        % Value changed function: NeuronDropDown
         function NeuronDropDownValueChanged(app, event)
             if strcmp(app.NeuronDropDown.Value, 'N/A')
                 app.current_neuron_id = 0; % Or some other indicator for no neuron
@@ -934,7 +935,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             UpdatePlot(app);
         end
 
-        % Previous neuron button pushed
+        % Button pushed function: PreviousNeuronButton
         function PreviousNeuronButtonPushed(app, event)
             if isempty(app.fluo_data) || app.current_neuron_id <= 1
                 return;
@@ -945,7 +946,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             UpdatePlot(app);
         end
 
-        % Next neuron button pushed
+        % Button pushed function: NextNeuronButton
         function NextNeuronButtonPushed(app, event)
             if isempty(app.fluo_data) || app.current_neuron_id >= size(app.fluo_data, 1)
                 return;
@@ -956,7 +957,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             UpdatePlot(app);
         end
 
-        % Update all neurons plot button pushed
+        % Button pushed function: DisplayAllNeuronsButton
         function DisplayAllNeuronsButtonPushed(app, event)
             app.scalebar_signal = app.ScalebarSignalEditField.Value;
             app.plot_scale_bar_time = app.PlotScaleBarTimeCheckBox.Value;
@@ -970,7 +971,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             UpdateAllNeuronsPlot(app); % This updates the separate figure window
         end
 
-        % Save results button pushed
+        % Button pushed function: SaveResultsButton
         function SaveResultsButtonPushed(app, event)
             if isempty(app.results) && isempty(app.dff_data) % Check if there are any results to save
                 uialert(app.UIFigure, 'No analysis results to save.', 'Save Error');
@@ -1080,7 +1081,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             end
         end
 
-        % Baseline method dropdown value changed
+        % Value changed function: BaselineMethodDropDown
         function BaselineMethodDropDownValueChanged(app, event) % Added event arg
             app.baseline_method = app.BaselineMethodDropDown.Value;
             isPercentile = strcmp(app.baseline_method, 'Percentile');
@@ -1201,6 +1202,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             app.RunAnalysisButton.ButtonPushedFcn = createCallbackFcn(app, @RunAnalysisButtonPushed, true);
             app.RunAnalysisButton.Position = [10 10 100 22];
             app.RunAnalysisButton.Text = 'Run Analysis';
+
             app.SaveResultsButton = uibutton(app.DeltaFOverFCalculatePanel, 'push');
             app.SaveResultsButton.ButtonPushedFcn = createCallbackFcn(app, @SaveResultsButtonPushed, true);
             app.SaveResultsButton.Position = [115 10 100 22];
@@ -1338,24 +1340,27 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
 
     % App creation and deletion
     methods (Access = public)
+
+        % Construct app
         function app = CalciumDeltaFCaculator
+
+            % Create UIFigure and components
             createComponents(app)
+
+            % Register the app with App Designer
             registerApp(app, app.UIFigure)
+
+            % Execute the startup function
             runStartupFcn(app, @startupFcn)
+
             if nargout == 0
                 clear app
             end
         end
 
+        % Code that executes before app deletion
         function delete(app)
-            % Close any external figures created by the app
-            if isfield(app, 'display_figure_handles') && ~isempty(app.display_figure_handles) && isvalid(app.display_figure_handles)
-                try
-                    close(app.display_figure_handles);
-                catch
-                    % Figure might already be closed
-                end
-            end
+
             % Delete the main UIFigure
             delete(app.UIFigure)
         end

@@ -1,54 +1,54 @@
-classdef CalciumDeltaFCaculator < matlab.apps.AppBase
+classdef CalciumDeltaFCaculator_exported < matlab.apps.AppBase
 
     % Properties that correspond to app components
     properties (Access = public)
-        UIFigure matlab.ui.Figure
-        FileOperationsPanel matlab.ui.container.Panel
-        FramerateHzLabel matlab.ui.control.Label
-        FramerateEditField matlab.ui.control.NumericEditField
-        LoadDataButton matlab.ui.control.Button
-        LoadedFileLabel matlab.ui.control.Label
-        DeltaFOverFCalculatePanel matlab.ui.container.Panel
-        CalculateZScoreCheckBox matlab.ui.control.CheckBox
-        BaselineMethodDropDownLabel matlab.ui.control.Label
-        BaselineMethodDropDown matlab.ui.control.DropDown
-        PercentileEditFieldLabel matlab.ui.control.Label
-        PercentileEditField matlab.ui.control.EditField
-        BaselineTimeLabel matlab.ui.control.Label
-        BaselineTimeEditField matlab.ui.control.EditField
-        PolynomialOrderLabel matlab.ui.control.Label
-        PolynomialOrderEditField matlab.ui.control.NumericEditField
-        MovingWindowLabel matlab.ui.control.Label
-        MovingWindowEditField matlab.ui.control.NumericEditField
-        MovingPercentileLabel matlab.ui.control.Label
-        MovingPercentileEditField matlab.ui.control.NumericEditField
-        RunAnalysisButton matlab.ui.control.Button
-        SaveResultsButton matlab.ui.control.Button
-        NeuronDisplayPanel matlab.ui.container.Panel
-        SelectNeuronLabel matlab.ui.control.Label
-        NeuronDropDown matlab.ui.control.DropDown
-        PreviousNeuronButton matlab.ui.control.Button
-        NextNeuronButton matlab.ui.control.Button
-        ExportAllNeuronsButton matlab.ui.control.Button
-        AllNeuronsDisplayPanel matlab.ui.container.Panel
-        DisplayAllNeuronsButton matlab.ui.control.Button
-        ScalebarSignalLabel matlab.ui.control.Label
-        ScalebarSignalEditField matlab.ui.control.NumericEditField
-        PlotScaleBarTimeCheckBox matlab.ui.control.CheckBox
-        ScalebarTimeLabel matlab.ui.control.Label
-        ScalebarTimeEditField matlab.ui.control.NumericEditField
-        SelectedROILabel matlab.ui.control.Label
-        SelectedROIEditField matlab.ui.control.EditField
-        ROIIntervalLabel matlab.ui.control.Label
-        ROIIntervalEditField matlab.ui.control.NumericEditField
-        ColorMapLabel matlab.ui.control.Label
-        ColorMapEditField matlab.ui.control.EditField
-        UIAxes matlab.ui.control.UIAxes
-        SignalTypeDropDown matlab.ui.control.DropDown
-        ExportPlotButton matlab.ui.control.Button
-        SetWidthButton matlab.ui.control.Button
-        SetHeightButton matlab.ui.control.Button
-        SetPlotColorButton matlab.ui.control.Button
+        UIFigure                     matlab.ui.Figure
+        SetPlotColorButton           matlab.ui.control.Button
+        SetHeightButton              matlab.ui.control.Button
+        SetWidthButton               matlab.ui.control.Button
+        ExportPlotButton             matlab.ui.control.Button
+        SignalTypeDropDown           matlab.ui.control.DropDown
+        AllNeuronsDisplayPanel       matlab.ui.container.Panel
+        DisplayAllNeuronsButton      matlab.ui.control.Button
+        ScalebarSignalLabel          matlab.ui.control.Label
+        ScalebarSignalEditField      matlab.ui.control.NumericEditField
+        PlotScaleBarTimeCheckBox     matlab.ui.control.CheckBox
+        ScalebarTimeLabel            matlab.ui.control.Label
+        ScalebarTimeEditField        matlab.ui.control.NumericEditField
+        SelectedROILabel             matlab.ui.control.Label
+        SelectedROIEditField         matlab.ui.control.EditField
+        ROIIntervalLabel             matlab.ui.control.Label
+        ROIIntervalEditField         matlab.ui.control.NumericEditField
+        ColorMapLabel                matlab.ui.control.Label
+        ColorMapEditField            matlab.ui.control.EditField
+        NeuronDisplayPanel           matlab.ui.container.Panel
+        SelectNeuronLabel            matlab.ui.control.Label
+        NeuronDropDown               matlab.ui.control.DropDown
+        PreviousNeuronButton         matlab.ui.control.Button
+        NextNeuronButton             matlab.ui.control.Button
+        ExportAllNeuronsButton       matlab.ui.control.Button
+        DeltaFOverFCalculatePanel    matlab.ui.container.Panel
+        CalculateZScoreCheckBox      matlab.ui.control.CheckBox
+        BaselineMethodDropDownLabel  matlab.ui.control.Label
+        BaselineMethodDropDown       matlab.ui.control.DropDown
+        PercentileEditFieldLabel     matlab.ui.control.Label
+        PercentileEditField          matlab.ui.control.EditField
+        BaselineTimeLabel            matlab.ui.control.Label
+        BaselineTimeEditField        matlab.ui.control.EditField
+        PolynomialOrderLabel         matlab.ui.control.Label
+        PolynomialOrderEditField     matlab.ui.control.NumericEditField
+        MovingWindowLabel            matlab.ui.control.Label
+        MovingWindowEditField        matlab.ui.control.NumericEditField
+        MovingPercentileLabel        matlab.ui.control.Label
+        MovingPercentileEditField    matlab.ui.control.NumericEditField
+        RunAnalysisButton            matlab.ui.control.Button
+        SaveResultsButton            matlab.ui.control.Button
+        FileOperationsPanel          matlab.ui.container.Panel
+        FramerateHzLabel             matlab.ui.control.Label
+        FramerateEditField           matlab.ui.control.NumericEditField
+        LoadDataButton               matlab.ui.control.Button
+        LoadedFileLabel              matlab.ui.control.Label
+        UIAxes                       matlab.ui.control.UIAxes
     end
 
     % Properties that store app data
@@ -413,7 +413,6 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
             try
                 plot.plot_signal(plot_signal_data, ...
                     'frame_rate', app.framerate, ...
-                    'time_vector', app.time_vector, ... % Pass the time vector
                     'color_map', app.color_map, ...
                     'signal_type', current_signal_type_for_plot, ...
                     'fig', app.display_figure_handles, ...
@@ -1082,7 +1081,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         end
 
         % Value changed function: BaselineMethodDropDown
-        function BaselineMethodDropDownValueChanged(app, event) % Added event arg
+        function BaselineMethodDropDownValueChanged(app, event)
             app.baseline_method = app.BaselineMethodDropDown.Value;
             isPercentile = strcmp(app.baseline_method, 'Percentile');
             isPolynomial = strcmp(app.baseline_method, 'Polynomial');
@@ -1106,234 +1105,287 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
     % Component initialization
     methods (Access = private)
 
-        % Create UI components
+        % Create UIFigure and components
         function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.Position = [100 100 1200 750];
-            app.UIFigure.Name = 'Calcium ΔF/F Calculator v2.1'; % Updated Name slightly
-            app.UIFigure.CloseRequestFcn = createCallbackFcn(app, @(src,event) delete(app), true);
+            app.UIFigure.Name = 'Calcium ΔF/F Calculator v2.1';
 
-            % File Operations Panel
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.UIFigure);
+            title(app.UIAxes, 'Signal')
+            xlabel(app.UIAxes, 'Time (s)')
+            ylabel(app.UIAxes, 'Raw Signal')
+            app.UIAxes.XGrid = 'on';
+            app.UIAxes.YGrid = 'on';
+            app.UIAxes.ZGrid = 'on';
+            app.UIAxes.Position = [350 50 800 650];
+
+            % Create FileOperationsPanel
             app.FileOperationsPanel = uipanel(app.UIFigure);
             app.FileOperationsPanel.Title = 'File Operations';
             app.FileOperationsPanel.Position = [20 620 300 100];
-            app.FramerateHzLabel = uilabel(app.FileOperationsPanel);
-            app.FramerateHzLabel.HorizontalAlignment = 'right';
-            app.FramerateHzLabel.Position = [10 40 90 22];
-            app.FramerateHzLabel.Text = 'Framerate (Hz):';
-            app.FramerateEditField = uieditfield(app.FileOperationsPanel, 'numeric');
-            app.FramerateEditField.ValueDisplayFormat = '%.2f';
-            app.FramerateEditField.Position = [110 40 100 22];
-            app.FramerateEditField.Value = app.framerate;
-            app.FramerateEditField.ValueChangedFcn = createCallbackFcn(app, @FramerateEditFieldValueChanged, true);
 
-            app.LoadDataButton = uibutton(app.FileOperationsPanel, 'push');
-            app.LoadDataButton.ButtonPushedFcn = createCallbackFcn(app, @LoadDataButtonPushed, true);
-            app.LoadDataButton.Position = [10 10 100 22];
-            app.LoadDataButton.Text = 'Load Data';
+            % Create LoadedFileLabel
             app.LoadedFileLabel = uilabel(app.FileOperationsPanel);
             app.LoadedFileLabel.Position = [120 10 170 22];
             app.LoadedFileLabel.Text = 'No file loaded';
 
-            % Delta F/F Calculate Panel
+            % Create LoadDataButton
+            app.LoadDataButton = uibutton(app.FileOperationsPanel, 'push');
+            app.LoadDataButton.ButtonPushedFcn = createCallbackFcn(app, @LoadDataButtonPushed, true);
+            app.LoadDataButton.Position = [10 10 100 22];
+            app.LoadDataButton.Text = 'Load Data';
+
+            % Create FramerateEditField
+            app.FramerateEditField = uieditfield(app.FileOperationsPanel, 'numeric');
+            app.FramerateEditField.ValueDisplayFormat = '%.2f';
+            app.FramerateEditField.ValueChangedFcn = createCallbackFcn(app, @FramerateEditFieldValueChanged, true);
+            app.FramerateEditField.Position = [110 40 100 22];
+            app.FramerateEditField.Value = 3.6;
+
+            % Create FramerateHzLabel
+            app.FramerateHzLabel = uilabel(app.FileOperationsPanel);
+            app.FramerateHzLabel.HorizontalAlignment = 'right';
+            app.FramerateHzLabel.Position = [10 40 90 22];
+            app.FramerateHzLabel.Text = 'Framerate (Hz):';
+
+            % Create DeltaFOverFCalculatePanel
             app.DeltaFOverFCalculatePanel = uipanel(app.UIFigure);
             app.DeltaFOverFCalculatePanel.Title = 'ΔF/F Calculate';
             app.DeltaFOverFCalculatePanel.Position = [20 365 300 250];
-            app.CalculateZScoreCheckBox = uicheckbox(app.DeltaFOverFCalculatePanel);
-            app.CalculateZScoreCheckBox.Text = 'Calculate z-score ΔF/F';
-            app.CalculateZScoreCheckBox.Position = [10 205 180 22]; 
-            app.CalculateZScoreCheckBox.Value = app.calculate_zscore;
-            app.BaselineMethodDropDownLabel = uilabel(app.DeltaFOverFCalculatePanel);
-            app.BaselineMethodDropDownLabel.HorizontalAlignment = 'right';
-            app.BaselineMethodDropDownLabel.Position = [10 178 100 22];
-            app.BaselineMethodDropDownLabel.Text = 'Baseline Method:';
-            app.BaselineMethodDropDown = uidropdown(app.DeltaFOverFCalculatePanel);
-            app.BaselineMethodDropDown.Items = {'Percentile', 'Polynomial', 'Moving Percentile'};
-            app.BaselineMethodDropDown.ValueChangedFcn = createCallbackFcn(app, @BaselineMethodDropDownValueChanged, true);
-            app.BaselineMethodDropDown.Position = [120 178 150 22];
-            app.BaselineMethodDropDown.Value = app.baseline_method;
-            
-            app.PercentileEditFieldLabel = uilabel(app.DeltaFOverFCalculatePanel);
-            app.PercentileEditFieldLabel.HorizontalAlignment = 'right';
-            app.PercentileEditFieldLabel.Position = [10 150 100 22];
-            app.PercentileEditFieldLabel.Text = 'Percentile(s):';
-            app.PercentileEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'text');
-            app.PercentileEditField.Position = [120 150 150 22];
-            app.PercentileEditField.Value = app.percentile_value;
-            app.PercentileEditField.Placeholder = '10:20 or 20';
-            
-            app.BaselineTimeLabel = uilabel(app.DeltaFOverFCalculatePanel);
-            app.BaselineTimeLabel.HorizontalAlignment = 'right';
-            app.BaselineTimeLabel.Position = [10 122 100 22];
-            app.BaselineTimeLabel.Text = 'Baseline Time(s):';
-            app.BaselineTimeEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'text');
-            app.BaselineTimeEditField.Position = [120 122 150 22];
-            app.BaselineTimeEditField.Value = app.baseline_time;
-            app.BaselineTimeEditField.Placeholder = 'all or 0:30 or 30';
 
-            app.PolynomialOrderLabel = uilabel(app.DeltaFOverFCalculatePanel);
-            app.PolynomialOrderLabel.HorizontalAlignment = 'right';
-            app.PolynomialOrderLabel.Position = [10 94 100 22];
-            app.PolynomialOrderLabel.Text = 'Polynomial Order:';
-            app.PolynomialOrderEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
-            app.PolynomialOrderEditField.ValueDisplayFormat = '%d';
-            app.PolynomialOrderEditField.Position = [120 94 150 22];
-            app.PolynomialOrderEditField.Value = app.polynomial_order;
-            
-            app.MovingWindowLabel = uilabel(app.DeltaFOverFCalculatePanel);
-            app.MovingWindowLabel.HorizontalAlignment = 'right';
-            app.MovingWindowLabel.Position = [10 66 100 22];
-            app.MovingWindowLabel.Text = 'Window Size (s):';
-            app.MovingWindowEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
-            app.MovingWindowEditField.ValueDisplayFormat = '%.2f';
-            app.MovingWindowEditField.Position = [120 66 150 22];
-            app.MovingWindowEditField.Value = app.moving_window_sec;
-
-            app.MovingPercentileLabel = uilabel(app.DeltaFOverFCalculatePanel);
-            app.MovingPercentileLabel.HorizontalAlignment = 'right';
-            app.MovingPercentileLabel.Position = [10 38 100 22];
-            app.MovingPercentileLabel.Text = 'Moving Percentile:';
-            app.MovingPercentileEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
-            app.MovingPercentileEditField.ValueDisplayFormat = '%.1f'; 
-            app.MovingPercentileEditField.Position = [120 38 150 22];
-            app.MovingPercentileEditField.Value = app.moving_percentile;
-
-            app.RunAnalysisButton = uibutton(app.DeltaFOverFCalculatePanel, 'push');
-            app.RunAnalysisButton.ButtonPushedFcn = createCallbackFcn(app, @RunAnalysisButtonPushed, true);
-            app.RunAnalysisButton.Position = [10 10 100 22];
-            app.RunAnalysisButton.Text = 'Run Analysis';
-
+            % Create SaveResultsButton
             app.SaveResultsButton = uibutton(app.DeltaFOverFCalculatePanel, 'push');
             app.SaveResultsButton.ButtonPushedFcn = createCallbackFcn(app, @SaveResultsButtonPushed, true);
             app.SaveResultsButton.Position = [115 10 100 22];
             app.SaveResultsButton.Text = 'Save Results';
 
-            % Neuron Display Panel
-            app.NeuronDisplayPanel = uipanel(app.UIFigure);
-            app.NeuronDisplayPanel.Title = 'Neuron Display & Export'; 
-            app.NeuronDisplayPanel.Position = [20 220 300 135]; 
-            
-            app.SelectNeuronLabel = uilabel(app.NeuronDisplayPanel);
-            app.SelectNeuronLabel.HorizontalAlignment = 'right';
-            app.SelectNeuronLabel.Position = [10 90 85 22]; 
-            app.SelectNeuronLabel.Text = 'Select Neuron:';
-            
-            app.NeuronDropDown = uidropdown(app.NeuronDisplayPanel);
-            app.NeuronDropDown.ValueChangedFcn = createCallbackFcn(app, @NeuronDropDownValueChanged, true);
-            app.NeuronDropDown.Position = [105 90 170 22]; 
-            
-            app.PreviousNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
-            app.PreviousNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @PreviousNeuronButtonPushed, true);
-            app.PreviousNeuronButton.Position = [10 60 85 22]; 
-            app.PreviousNeuronButton.Text = 'Previous';
-            
-            app.NextNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
-            app.NextNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @NextNeuronButtonPushed, true);
-            app.NextNeuronButton.Position = [105 60 85 22]; 
-            app.NextNeuronButton.Text = 'Next';
+            % Create RunAnalysisButton
+            app.RunAnalysisButton = uibutton(app.DeltaFOverFCalculatePanel, 'push');
+            app.RunAnalysisButton.ButtonPushedFcn = createCallbackFcn(app, @RunAnalysisButtonPushed, true);
+            app.RunAnalysisButton.Position = [10 10 100 22];
+            app.RunAnalysisButton.Text = 'Run Analysis';
 
+            % Create MovingPercentileEditField
+            app.MovingPercentileEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
+            app.MovingPercentileEditField.ValueDisplayFormat = '%.1f';
+            app.MovingPercentileEditField.Position = [120 38 150 22];
+            app.MovingPercentileEditField.Value = 20;
+
+            % Create MovingPercentileLabel
+            app.MovingPercentileLabel = uilabel(app.DeltaFOverFCalculatePanel);
+            app.MovingPercentileLabel.HorizontalAlignment = 'right';
+            app.MovingPercentileLabel.Position = [10 38 100 22];
+            app.MovingPercentileLabel.Text = 'Moving Percentile:';
+
+            % Create MovingWindowEditField
+            app.MovingWindowEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
+            app.MovingWindowEditField.ValueDisplayFormat = '%.2f';
+            app.MovingWindowEditField.Position = [120 66 150 22];
+            app.MovingWindowEditField.Value = 20;
+
+            % Create MovingWindowLabel
+            app.MovingWindowLabel = uilabel(app.DeltaFOverFCalculatePanel);
+            app.MovingWindowLabel.HorizontalAlignment = 'right';
+            app.MovingWindowLabel.Position = [10 66 100 22];
+            app.MovingWindowLabel.Text = 'Window Size (s):';
+
+            % Create PolynomialOrderEditField
+            app.PolynomialOrderEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'numeric');
+            app.PolynomialOrderEditField.ValueDisplayFormat = '%d';
+            app.PolynomialOrderEditField.Position = [120 94 150 22];
+            app.PolynomialOrderEditField.Value = 3;
+
+            % Create PolynomialOrderLabel
+            app.PolynomialOrderLabel = uilabel(app.DeltaFOverFCalculatePanel);
+            app.PolynomialOrderLabel.HorizontalAlignment = 'right';
+            app.PolynomialOrderLabel.Position = [10 94 100 22];
+            app.PolynomialOrderLabel.Text = 'Polynomial Order:';
+
+            % Create BaselineTimeEditField
+            app.BaselineTimeEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'text');
+            app.BaselineTimeEditField.Placeholder = 'all or 0:30 or 30';
+            app.BaselineTimeEditField.Position = [120 122 150 22];
+            app.BaselineTimeEditField.Value = 'all';
+
+            % Create BaselineTimeLabel
+            app.BaselineTimeLabel = uilabel(app.DeltaFOverFCalculatePanel);
+            app.BaselineTimeLabel.HorizontalAlignment = 'right';
+            app.BaselineTimeLabel.Position = [10 122 100 22];
+            app.BaselineTimeLabel.Text = 'Baseline Time(s):';
+
+            % Create PercentileEditField
+            app.PercentileEditField = uieditfield(app.DeltaFOverFCalculatePanel, 'text');
+            app.PercentileEditField.Placeholder = '10:20 or 20';
+            app.PercentileEditField.Position = [120 150 150 22];
+            app.PercentileEditField.Value = '10:20';
+
+            % Create PercentileEditFieldLabel
+            app.PercentileEditFieldLabel = uilabel(app.DeltaFOverFCalculatePanel);
+            app.PercentileEditFieldLabel.HorizontalAlignment = 'right';
+            app.PercentileEditFieldLabel.Position = [10 150 100 22];
+            app.PercentileEditFieldLabel.Text = 'Percentile(s):';
+
+            % Create BaselineMethodDropDown
+            app.BaselineMethodDropDown = uidropdown(app.DeltaFOverFCalculatePanel);
+            app.BaselineMethodDropDown.Items = {'Percentile', 'Polynomial', 'Moving Percentile'};
+            app.BaselineMethodDropDown.ValueChangedFcn = createCallbackFcn(app, @BaselineMethodDropDownValueChanged, true);
+            app.BaselineMethodDropDown.Position = [120 178 150 22];
+            app.BaselineMethodDropDown.Value = 'Percentile';
+
+            % Create BaselineMethodDropDownLabel
+            app.BaselineMethodDropDownLabel = uilabel(app.DeltaFOverFCalculatePanel);
+            app.BaselineMethodDropDownLabel.HorizontalAlignment = 'right';
+            app.BaselineMethodDropDownLabel.Position = [10 178 100 22];
+            app.BaselineMethodDropDownLabel.Text = 'Baseline Method:';
+
+            % Create CalculateZScoreCheckBox
+            app.CalculateZScoreCheckBox = uicheckbox(app.DeltaFOverFCalculatePanel);
+            app.CalculateZScoreCheckBox.Text = 'Calculate z-score ΔF/F';
+            app.CalculateZScoreCheckBox.Position = [10 205 180 22];
+
+            % Create NeuronDisplayPanel
+            app.NeuronDisplayPanel = uipanel(app.UIFigure);
+            app.NeuronDisplayPanel.Title = 'Neuron Display & Export';
+            app.NeuronDisplayPanel.Position = [20 220 300 135];
+
+            % Create ExportAllNeuronsButton
             app.ExportAllNeuronsButton = uibutton(app.NeuronDisplayPanel, 'push');
             app.ExportAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @ExportAllNeuronsButtonPushed, true);
-            app.ExportAllNeuronsButton.Position = [10 30 180 22]; 
+            app.ExportAllNeuronsButton.Position = [10 30 180 22];
             app.ExportAllNeuronsButton.Text = 'Export All Neurons';
 
-            % All Neurons Display Panel (for external plot settings)
+            % Create NextNeuronButton
+            app.NextNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
+            app.NextNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @NextNeuronButtonPushed, true);
+            app.NextNeuronButton.Position = [105 60 85 22];
+            app.NextNeuronButton.Text = 'Next';
+
+            % Create PreviousNeuronButton
+            app.PreviousNeuronButton = uibutton(app.NeuronDisplayPanel, 'push');
+            app.PreviousNeuronButton.ButtonPushedFcn = createCallbackFcn(app, @PreviousNeuronButtonPushed, true);
+            app.PreviousNeuronButton.Position = [10 60 85 22];
+            app.PreviousNeuronButton.Text = 'Previous';
+
+            % Create NeuronDropDown
+            app.NeuronDropDown = uidropdown(app.NeuronDisplayPanel);
+            app.NeuronDropDown.ValueChangedFcn = createCallbackFcn(app, @NeuronDropDownValueChanged, true);
+            app.NeuronDropDown.Position = [105 90 170 22];
+
+            % Create SelectNeuronLabel
+            app.SelectNeuronLabel = uilabel(app.NeuronDisplayPanel);
+            app.SelectNeuronLabel.HorizontalAlignment = 'right';
+            app.SelectNeuronLabel.Position = [10 90 85 22];
+            app.SelectNeuronLabel.Text = 'Select Neuron:';
+
+            % Create AllNeuronsDisplayPanel
             app.AllNeuronsDisplayPanel = uipanel(app.UIFigure);
             app.AllNeuronsDisplayPanel.Title = 'All Neurons Plot Settings (ΔF/F)';
-            app.AllNeuronsDisplayPanel.Position = [20 10 300 200]; 
-            
-            app.DisplayAllNeuronsButton = uibutton(app.AllNeuronsDisplayPanel, 'push');
-            app.DisplayAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @DisplayAllNeuronsButtonPushed, true);
-            app.DisplayAllNeuronsButton.Position = [10 155 200 22]; 
-            app.DisplayAllNeuronsButton.Text = 'Open/Update All Neurons Plot';
-            
-            app.ScalebarSignalLabel = uilabel(app.AllNeuronsDisplayPanel);
-            app.ScalebarSignalLabel.HorizontalAlignment = 'left'; 
-            app.ScalebarSignalLabel.Position = [10 125 130 22];
-            app.ScalebarSignalLabel.Text = 'Scalebar Signal Value:';
-            app.ScalebarSignalEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
-            app.ScalebarSignalEditField.Position = [170 125 100 22];
-            app.ScalebarSignalEditField.Value = app.scalebar_signal;
-            
-            app.PlotScaleBarTimeCheckBox = uicheckbox(app.AllNeuronsDisplayPanel);
-            app.PlotScaleBarTimeCheckBox.Text = 'Plot Time Scalebar';
-            app.PlotScaleBarTimeCheckBox.Position = [10 95 140 22]; 
-            app.PlotScaleBarTimeCheckBox.Value = app.plot_scale_bar_time;
-            
-            app.ScalebarTimeLabel = uilabel(app.AllNeuronsDisplayPanel);
-            app.ScalebarTimeLabel.HorizontalAlignment = 'right';
-            app.ScalebarTimeLabel.Position = [130 95 80 22]; 
-            app.ScalebarTimeLabel.Text = 'Length (s):'; 
-            app.ScalebarTimeEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
-            app.ScalebarTimeEditField.Position = [220 95 50 22];
-            app.ScalebarTimeEditField.Value = app.scalebar_time;
-            
-            app.SelectedROILabel = uilabel(app.AllNeuronsDisplayPanel);
-            app.SelectedROILabel.HorizontalAlignment = 'right';
-            app.SelectedROILabel.Position = [10 65 80 22];
-            app.SelectedROILabel.Text = 'Selected ROI:';
-            app.SelectedROIEditField = uieditfield(app.AllNeuronsDisplayPanel, 'text');
-            app.SelectedROIEditField.Position = [100 65 170 22];
-            app.SelectedROIEditField.Value = app.selected_roi_str;
-            app.SelectedROIEditField.Placeholder = 'e.g., 1:5,7,10:12';
-            
-            app.ROIIntervalLabel = uilabel(app.AllNeuronsDisplayPanel);
-            app.ROIIntervalLabel.HorizontalAlignment = 'right';
-            app.ROIIntervalLabel.Position = [10 35 80 22];
-            app.ROIIntervalLabel.Text = 'ROI Interval:';
-            app.ROIIntervalEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
-            app.ROIIntervalEditField.Position = [100 35 170 22];
-            app.ROIIntervalEditField.Value = app.roi_interval;
-            
+            app.AllNeuronsDisplayPanel.Position = [20 10 300 200];
+
+            % Create ColorMapEditField
+            app.ColorMapEditField = uieditfield(app.AllNeuronsDisplayPanel, 'text');
+            app.ColorMapEditField.Placeholder = 'turbo, jet, or #RRGGBB';
+            app.ColorMapEditField.Position = [100 5 170 22];
+            app.ColorMapEditField.Value = 'turbo';
+
+            % Create ColorMapLabel
             app.ColorMapLabel = uilabel(app.AllNeuronsDisplayPanel);
             app.ColorMapLabel.HorizontalAlignment = 'right';
             app.ColorMapLabel.Position = [10 5 80 22];
             app.ColorMapLabel.Text = 'Color Map:';
-            app.ColorMapEditField = uieditfield(app.AllNeuronsDisplayPanel, 'text');
-            app.ColorMapEditField.Position = [100 5 170 22];
-            app.ColorMapEditField.Value = app.color_map;
-            app.ColorMapEditField.Placeholder = 'turbo, jet, or #RRGGBB';
 
-            % UIAxes
-            app.UIAxes = uiaxes(app.UIFigure);
-            title(app.UIAxes, 'Signal')
-            xlabel(app.UIAxes, 'Time (s)')
-            ylabel(app.UIAxes, 'Raw Signal')
-            app.UIAxes.Position = [350 50 800 650];
-            grid(app.UIAxes, 'on');
+            % Create ROIIntervalEditField
+            app.ROIIntervalEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
+            app.ROIIntervalEditField.Position = [100 35 170 22];
+            app.ROIIntervalEditField.Value = 1;
 
-            % Signal Type Dropdown
+            % Create ROIIntervalLabel
+            app.ROIIntervalLabel = uilabel(app.AllNeuronsDisplayPanel);
+            app.ROIIntervalLabel.HorizontalAlignment = 'right';
+            app.ROIIntervalLabel.Position = [10 35 80 22];
+            app.ROIIntervalLabel.Text = 'ROI Interval:';
+
+            % Create SelectedROIEditField
+            app.SelectedROIEditField = uieditfield(app.AllNeuronsDisplayPanel, 'text');
+            app.SelectedROIEditField.Placeholder = 'e.g., 1:5,7,10:12';
+            app.SelectedROIEditField.Position = [100 65 170 22];
+
+            % Create SelectedROILabel
+            app.SelectedROILabel = uilabel(app.AllNeuronsDisplayPanel);
+            app.SelectedROILabel.HorizontalAlignment = 'right';
+            app.SelectedROILabel.Position = [10 65 80 22];
+            app.SelectedROILabel.Text = 'Selected ROI:';
+
+            % Create ScalebarTimeEditField
+            app.ScalebarTimeEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
+            app.ScalebarTimeEditField.Position = [220 95 50 22];
+            app.ScalebarTimeEditField.Value = 10;
+
+            % Create ScalebarTimeLabel
+            app.ScalebarTimeLabel = uilabel(app.AllNeuronsDisplayPanel);
+            app.ScalebarTimeLabel.HorizontalAlignment = 'right';
+            app.ScalebarTimeLabel.Position = [130 95 80 22];
+            app.ScalebarTimeLabel.Text = 'Length (s):';
+
+            % Create PlotScaleBarTimeCheckBox
+            app.PlotScaleBarTimeCheckBox = uicheckbox(app.AllNeuronsDisplayPanel);
+            app.PlotScaleBarTimeCheckBox.Text = 'Plot Time Scalebar';
+            app.PlotScaleBarTimeCheckBox.Position = [10 95 140 22];
+            app.PlotScaleBarTimeCheckBox.Value = true;
+
+            % Create ScalebarSignalEditField
+            app.ScalebarSignalEditField = uieditfield(app.AllNeuronsDisplayPanel, 'numeric');
+            app.ScalebarSignalEditField.Position = [170 125 100 22];
+            app.ScalebarSignalEditField.Value = 1;
+
+            % Create ScalebarSignalLabel
+            app.ScalebarSignalLabel = uilabel(app.AllNeuronsDisplayPanel);
+            app.ScalebarSignalLabel.Position = [10 125 130 22];
+            app.ScalebarSignalLabel.Text = 'Scalebar Signal Value:';
+
+            % Create DisplayAllNeuronsButton
+            app.DisplayAllNeuronsButton = uibutton(app.AllNeuronsDisplayPanel, 'push');
+            app.DisplayAllNeuronsButton.ButtonPushedFcn = createCallbackFcn(app, @DisplayAllNeuronsButtonPushed, true);
+            app.DisplayAllNeuronsButton.Position = [10 155 200 22];
+            app.DisplayAllNeuronsButton.Text = 'Open/Update All Neurons Plot';
+
+            % Create SignalTypeDropDown
             app.SignalTypeDropDown = uidropdown(app.UIFigure);
             app.SignalTypeDropDown.Items = {'Raw Signal'};
-            app.SignalTypeDropDown.Value = 'Raw Signal';
             app.SignalTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @SignalTypeDropDownValueChanged, true);
-            app.SignalTypeDropDown.Position = [360 710 120 22]; 
             app.SignalTypeDropDown.Enable = 'off';
+            app.SignalTypeDropDown.Position = [360 710 120 22];
+            app.SignalTypeDropDown.Value = 'Raw Signal';
 
-            % Export Plot Button (for single plot in UIAxes)
+            % Create ExportPlotButton
             app.ExportPlotButton = uibutton(app.UIFigure, 'push');
             app.ExportPlotButton.ButtonPushedFcn = createCallbackFcn(app, @ExportPlotButtonPushed, true);
-            app.ExportPlotButton.Position = [490 710 100 22]; 
+            app.ExportPlotButton.Position = [490 710 100 22];
             app.ExportPlotButton.Text = 'Export This Plot';
 
-            % Set Width Button
+            % Create SetWidthButton
             app.SetWidthButton = uibutton(app.UIFigure, 'push');
             app.SetWidthButton.ButtonPushedFcn = createCallbackFcn(app, @SetWidthButtonPushed, true);
-            app.SetWidthButton.Position = [600 710 100 22]; 
+            app.SetWidthButton.Position = [600 710 100 22];
             app.SetWidthButton.Text = 'Set Axes Width';
 
-            % Set Height Button
+            % Create SetHeightButton
             app.SetHeightButton = uibutton(app.UIFigure, 'push');
             app.SetHeightButton.ButtonPushedFcn = createCallbackFcn(app, @SetHeightButtonPushed, true);
-            app.SetHeightButton.Position = [710 710 100 22]; 
+            app.SetHeightButton.Position = [710 710 100 22];
             app.SetHeightButton.Text = 'Set Axes Height';
 
-            % NEW: Set Plot Color Button
+            % Create SetPlotColorButton
             app.SetPlotColorButton = uibutton(app.UIFigure, 'push');
             app.SetPlotColorButton.ButtonPushedFcn = createCallbackFcn(app, @SetPlotColorButtonPushed, true);
-            app.SetPlotColorButton.Position = [820 710 100 22]; % Positioned after "Set Height"
+            app.SetPlotColorButton.Position = [820 710 100 22];
             app.SetPlotColorButton.Text = 'Set Plot Color';
-            
+
+            % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
         end
     end
@@ -1342,7 +1394,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = CalciumDeltaFCaculator
+        function app = CalciumDeltaFCaculator_exported
 
             % Create UIFigure and components
             createComponents(app)
@@ -1361,7 +1413,7 @@ classdef CalciumDeltaFCaculator < matlab.apps.AppBase
         % Code that executes before app deletion
         function delete(app)
 
-            % Delete the main UIFigure
+            % Delete UIFigure when app is deleted
             delete(app.UIFigure)
         end
     end
